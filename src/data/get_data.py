@@ -150,6 +150,7 @@ class CSVsLoader:
         '''
         df = pd.read_csv(os.path.join(directory, f'{ticker}-daily-full.csv'), index_col=0, parse_dates=True)
         df.sort_index(ascending=True, inplace=True)
+        df.name = ticker
         return df
 
 
