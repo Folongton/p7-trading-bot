@@ -1,20 +1,22 @@
-from dotenv import find_dotenv, load_dotenv
 import os
 import json as j
 import pandas as pd
 import requests as r
 import time
 from pathlib import Path
-from datetime import datetime, timedelta
+
+from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(), verbose=True)
 
+from src.common.globals import G
 
 AV_KEY = os.environ.get("ALPHA_VANTAGE_FREE_KEY")
 CALLS_PER_MINUTE = 75
 SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 75 requests per minute with 10% buffer
+# MUST be updated for cheapest API, since AV no longer offers free API with 60 calls per minute. see here : https://www.alphavantage.co/premium/
 
-project_dir = Path(__file__).resolve().parents[2]
-DATA_DIR = f'{project_dir}\data\\00_raw\daily_full'
+DATA_DIR_DAILY_FULL = G.daily_full_dir
+NASDAQ_ALL = G.all_nasdaq_tickers
 
 class AlphaVantageAPI:
     @staticmethod
@@ -141,10 +143,14 @@ class AlphaVantageAPI:
             with open(os.path.join(directory, f'{ticker}-30days-hourly.csv'), 'w') as f:
                 f.write(response.text)
 
-    
-class CSVsLoader:
-    @staticmethod
-    def load_daily(ticker, directory=DATA_DIR):
+class CSVsLoader(pd.DataFrame):
+    def __init__(self, ticker ,*args, **kwargs):
+        # Create a DataFrame object (empty)
+        super().__init__(*args, **kwargs)
+        self.ticker = ticker
+        self.load_daily(ticker=self.ticker)
+
+    def load_daily(self, ticker, directory=DATA_DIR_DAILY_FULL):
         '''
         Loads the daily data from a csv file.
         IN: ticker, directory
@@ -153,10 +159,24 @@ class CSVsLoader:
         df = pd.read_csv(os.path.join(directory, f'{ticker}-daily-full.csv'), index_col=0, parse_dates=True)
         df.sort_index(ascending=True, inplace=True)
         df.name = ticker
-        return df
+        # Populate the current object (which is also a DataFrame) with the loaded data
+        self.__dict__.update(df.__dict__)
 
+
+    def prep_AV_data(self):
+        self.drop(columns=['1. open', '2. high', '3. low', '4. close', '7. dividend amount', '8. split coefficient'], inplace=True)
+        self.rename(columns={'5. adjusted close': 'Adj Close', '6. volume': 'Volume'}, inplace=True)
+        self.index.name = 'Date'
+        self.sort_index(ascending=True, inplace=True)
+        self.dropna(inplace=True, subset=['Adj Close'])
+        return self
+
+    def save_data(self, directory=''):
+        '''
+        Saves the data as a csv file into 03_processed folder.'''
+        self.to_csv(os.path.join(directory, f'{self.name}-daily-full.csv'))
 
 if __name__ == '__main__':
-    # AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR,  AV_KEY, 'full', SLEEP_TIME) # Value stocks
-    # AlphaVantageAPI.get_daily_data_for_list(['BABA', 'AMZN', 'MSFT', 'TSLA', 'GOOGL'], DATA_DIR, AV_KEY, 'full', SLEEP_TIME) # Growth stocks
-    pass
+    AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR_DAILY_FULL,  AV_KEY, 'full', SLEEP_TIME) # Value stocks
+    AlphaVantageAPI.get_daily_data_for_list(['BABA', 'AMZN', 'MSFT', 'TSLA', 'GOOGL'], DATA_DIR_DAILY_FULL, AV_KEY, 'full', SLEEP_TIME) # Growth stocks
+    AlphaVantageAPI.get_daily_data_for_list(NASDAQ_ALL, DATA_DIR_DAILY_FULL, AV_KEY, 'full', SLEEP_TIME) # All NASDAQ stocks
