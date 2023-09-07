@@ -5,6 +5,7 @@ import pandas as pd
 import requests as r
 import time
 from pathlib import Path
+from datetime import datetime, timedelta
 load_dotenv(find_dotenv(), verbose=True)
 
 
@@ -17,7 +18,7 @@ DATA_DIR = f'{project_dir}\data\\00_raw\daily_full'
 
 class AlphaVantageAPI:
     @staticmethod
-    def get_daily_data(ticker, apikey, full_or_compact='full'):
+    def get_daily_data(ticker, apikey=AV_KEY, full_or_compact='full'):
         '''
         https://www.alphavantage.co/documentation/#dailyadj
         Returns formatted data from AlphaVantage API
@@ -30,7 +31,7 @@ class AlphaVantageAPI:
         return formated_response
     
     @staticmethod
-    def get_daily_data_for_list(ticker_list, directory, apikey, full_or_compact, sleep_time):
+    def get_daily_data_for_list(ticker_list, directory, full_or_compact,  apikey=AV_KEY, sleep_time=SLEEP_TIME):
         '''
         https://www.alphavantage.co/documentation/#dailyadj
         Saves Data from AlphaVantage API to a folder in 1 csv file per ticker
@@ -140,6 +141,7 @@ class AlphaVantageAPI:
             with open(os.path.join(directory, f'{ticker}-30days-hourly.csv'), 'w') as f:
                 f.write(response.text)
 
+    
 class CSVsLoader:
     @staticmethod
     def load_daily(ticker, directory=DATA_DIR):
@@ -155,5 +157,6 @@ class CSVsLoader:
 
 
 if __name__ == '__main__':
-    AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR,  AV_KEY, 'full', SLEEP_TIME) # Value stocks
-    AlphaVantageAPI.get_daily_data_for_list(['BABA', 'AMZN', 'MSFT', 'TSLA', 'GOOGL'], DATA_DIR, AV_KEY, 'full', SLEEP_TIME) # Growth stocks
+    # AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR,  AV_KEY, 'full', SLEEP_TIME) # Value stocks
+    # AlphaVantageAPI.get_daily_data_for_list(['BABA', 'AMZN', 'MSFT', 'TSLA', 'GOOGL'], DATA_DIR, AV_KEY, 'full', SLEEP_TIME) # Growth stocks
+    pass

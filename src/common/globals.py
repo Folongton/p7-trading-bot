@@ -3,26 +3,35 @@ from pathlib import Path
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
-import sys
+import os
 import seaborn as sns
 from scipy.stats import geom
+from datetime import datetime, timedelta
+from sklearn.linear_model import LinearRegression
+import matplotlib.pyplot as plt
 
 from src.data.get_data import CSVsLoader as CSVs
+
+plt.rcParams['figure.figsize'] = (15, 5)
+plt.style.use('Solarize_Light2')
 
 @dataclass
 class G:
     ''' Global variables and methods for project
     '''
     name: str 
-    growth_stocks = ['AMZN','BABA','GOOGL','MSFT','TSLA']
-    value_stocks = ['ABBV','F','INTC','JNJ','VZ']
+    growth_tickers = ['AMZN','BABA','GOOGL','MSFT','TSLA']
+    value_tikers = ['ABBV','F','INTC','JNJ','VZ']
+    all_nasdaq_tickers = pd.read_csv(os.path.join(str(Path(__file__).resolve().parents[2]), r'data\00_raw\NASDAQ All Tickers.csv'))['ticker'].tolist()
 
     @staticmethod
-    def get_project_root() -> Path:
+    def get_project_root(as_path=False):
         """Returns project root folder."""
-        print(Path(__file__).resolve().parents[2])
-        return Path(__file__).resolve().parents[2]
-    
+        if as_path:
+            return Path(__file__).resolve().parents[2]
+        else:
+            return str(Path(__file__).resolve().parents[2])
+
     @staticmethod
     def setup_logging(console_level=logging.INFO, log_file='DEFAULT', log_file_level=logging.INFO, logger_name=__name__):
         ''' Setup Logging in log file and console
@@ -50,7 +59,7 @@ class G:
 
         return logger 
     
-class StockRelated:
+class Analysis:
     '''Global Methods related to stock data analysis and manipulation
     '''
 
@@ -98,7 +107,7 @@ class StockRelated:
                 print_proba: whether to print probabilities or only return dataframe with all probabilities
         OUTPUT: dataframe with probabilities of stock to go up or down next day
         '''
-        df = StockRelated.assign_return_bucket(stock_df)
+        df = Analysis.assign_return_bucket(stock_df)
         df = df.copy(deep=True)[-days_back:]
         # shift return bucket column up by one row to match the previous day's return bucket
         df['previous_day_return_bucket'] = df['return bucket'].rolling(2).apply(lambda x: x.iloc[0])
@@ -125,7 +134,7 @@ class StockRelated:
         colinearity_df = pd.DataFrame()
         for stock in all_stocks:
             df = CSVs.load_daily(stock)
-            df = StockRelated.calc_proba_price_change_based(df, percentChange=0, days_back=days_to_look_back, print_proba=False) # here we getting full probability dataframe to use for correlation, so here we can disregard percentChange argument as well as print_proba.
+            df = Analysis.calc_proba_price_change_based(df, percentChange=0, days_back=days_to_look_back, print_proba=False) # here we getting full probability dataframe to use for correlation, so here we can disregard percentChange argument as well as print_proba.
             df = df.iloc[1].to_frame().T
             df.index = [stock] * len(df)
             colinearity_df = pd.concat([colinearity_df, df], axis=0)
@@ -137,7 +146,7 @@ class StockRelated:
         '''Calculates probability of a stock to go on specified direction for a given number of days in a row.
         Basically Geometric Distribution of a stock going up or down for a given number of days in a row based on previous days going up or down.
         INPUT: stock_df: dataframe of stock data with calculated 'UP or DOWN' column,
-                        To calculate 'UP or DOWN' column use StockRelated.assign_return_bucket() method,
+                        To calculate 'UP or DOWN' column use Analysis.assign_return_bucket() method,
                 cont_days: number of days in a row to check for,
                 period_days: number of days to look back for calculating,
                 direction: direction to check for ('up' or 'down')
@@ -152,3 +161,86 @@ class StockRelated:
         df.name = df_name
         proba = geom.pmf(cont_days, df['UP or DOWN'].value_counts(normalize=True).loc[direction_int])
         print(f'Probability of {stock_df.name} going "{direction.upper()}" for {cont_days} days in a row is {round(proba*100,3)}%. Based on {days_back} days of data.')
+
+    @staticmethod
+    def aggregate_close_prices(directory, calendar_days_back=90 ,intraday=False, day_for_intraday='2023-03-24'):
+        '''
+        This function takes all the csv files in the directory and aggregates them into one dataframe.
+        directory: The directory where the data is stored.
+        intraday: If True it will take only points from '10:00' to '13:30'.
+        '''
+        df_agg = pd.DataFrame()
+        for file in os.listdir(directory):
+            if file.endswith('.csv'):
+                df = pd.read_csv(os.path.join(directory, file), index_col=0, parse_dates=True)
+                if df.empty:
+                    continue
+
+                if intraday:
+                    df = df.loc[day_for_intraday]
+                    df = df.between_time('10:00', '13:30')
+                    df = df[['5. adjusted close']].iloc[::-1] 
+                    if df.empty:
+                        continue
+                    if len(df) < 24: #24 periods of 5 min = 2 hours
+                        continue
+                    if df['5. adjusted close'].nunique() == 1:
+                        continue
+
+                else:
+                    start_date = datetime.now() - timedelta(days=calendar_days_back) 
+                    start_date = start_date.strftime('%Y-%m-%d')
+                    df = df.loc[df.index > start_date]
+                    df = df[['5. adjusted close']].iloc[::-1]
+                    if df.empty:
+                        continue
+                    if df['5. adjusted close'].nunique() == 1:
+                        continue
+                
+                df.columns = [file.split('-')[0]]
+                df_agg = pd.concat([df_agg, df], axis=1)
+                    
+        return df_agg
+    
+    @staticmethod
+    def find_best_linear_stock(df):
+        '''
+        IN: dataframe of ticker - columns and close price - rows 
+        OUT: dataframe with R2, Slope for each ticker.
+        '''
+        df_stats = pd.DataFrame(columns=['ticker', 'R2', 'slope'])
+        for col in df.columns:
+            series = df[col].copy().ffill()
+            series = series.copy().bfill()
+
+            X = series.reset_index().index.values.reshape(-1,1)
+            y = series.values.reshape(-1,1)
+            model = LinearRegression().fit(X,y)
+        
+            df_stats = pd.concat([df_stats, pd.DataFrame({'ticker': col, 'R2': model.score(X,y), 'slope': model.coef_[0]}, index=[0])], ignore_index=True)
+        return df_stats
+    
+    @staticmethod
+    def plot_correlation(series, intervals='Days'):
+        '''
+        This function plots the correlation between the series - Price and the index of series - Time.
+        '''
+        series = series.ffill()
+        series = series.bfill()
+
+        X = series.reset_index().index.values.reshape(-1,1) # 60 days of data in exact same interval - 1 day.
+        y = series.values.reshape(-1,1) # prices 
+
+        model = LinearRegression()
+        model.fit(X, y)
+
+        plt.style.use('Solarize_Light2')
+        plt.figure(figsize=(10,6))
+        
+        plt.scatter(X, y, s=10, color='#294dba')
+        plt.plot(model.predict(X), color='#d9344f')
+        
+        plt.xlabel(intervals)
+        plt.ylabel('Price')
+        plt.title(f'Linear Correlation of {series.name} with linear regression line')
+        plt.show()
