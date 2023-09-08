@@ -3,20 +3,27 @@ import json as j
 import pandas as pd
 import requests as r
 import time
-from pathlib import Path
+import logging
+from src.common.logs import setup_logging
 
 from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(), verbose=True)
 
 from src.common.globals import G
+from pathlib import Path
 
 AV_KEY = os.environ.get("ALPHA_VANTAGE_FREE_KEY")
 CALLS_PER_MINUTE = 75
 SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 75 requests per minute with 10% buffer
 # MUST be updated for cheapest API, since AV no longer offers free API with 60 calls per minute. see here : https://www.alphavantage.co/premium/
 
-DATA_DIR_DAILY_FULL = G.daily_full_dir
+DATA_DIR_DAILY_FULL = G.raw_daily_full_dir
 NASDAQ_ALL = G.all_nasdaq_tickers
+
+logger = setup_logging(logger_name=__name__,
+                        console_level=logging.INFO, 
+                        log_file_level=logging.INFO)
+
 
 class AlphaVantageAPI:
     @staticmethod
@@ -144,23 +151,29 @@ class AlphaVantageAPI:
                 f.write(response.text)
 
 class CSVsLoader(pd.DataFrame):
-    def __init__(self, ticker ,*args, **kwargs):
+    def __init__(self, ticker , directory=DATA_DIR_DAILY_FULL , *args, **kwargs):
         # Create a DataFrame object (empty)
         super().__init__(*args, **kwargs)
         self.ticker = ticker
-        self.load_daily(ticker=self.ticker)
+        self.directory = directory
+        self.load_daily(ticker=self.ticker, directory=self.directory)
 
-    def load_daily(self, ticker, directory=DATA_DIR_DAILY_FULL):
+    def load_daily(self, ticker, directory):
         '''
         Loads the daily data from a csv file.
         IN: ticker, directory
         OUT: pandas dataframe
         '''
-        df = pd.read_csv(os.path.join(directory, f'{ticker}-daily-full.csv'), index_col=0, parse_dates=True)
+        full_path = os.path.join(directory, f'{ticker}-daily-full.csv')
+        parts = Path(full_path).parts[-5:]
+        for_logs = os.path.join(r'..', parts[0], parts[1], parts[2], parts[3], parts[4])
+
+        df = pd.read_csv(full_path, index_col=0, parse_dates=True, date_format='yyyy-mm-dd' )
         df.sort_index(ascending=True, inplace=True)
         df.name = ticker
-        # Populate the current object (which is also a DataFrame) with the loaded data
         self.__dict__.update(df.__dict__)
+
+        logger.info(f'Loaded "{for_logs}". Number data points {df.shape[0]}. From "{df.index[0]}" to "{df.index[-1]}"')
 
 
     def prep_AV_data(self):
