@@ -12,6 +12,7 @@ from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib.ticker import FuncFormatter
+import matplotlib.dates as mdates
 
 from ta.volatility import  BollingerBands
 from ta.trend import SMAIndicator, EMAIndicator, WMAIndicator
@@ -478,6 +479,15 @@ class Visualize:
         plt.show()  
 
     @staticmethod
+    def construct_fig_path(model_name, title):
+        '''Constructs path for saving figure'''
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f'{model_name}-{title}-{now}.png'
+        fig_dir = os.path.join(PROJECT_DIR, r'figures')
+        fig_path = os.path.join(fig_dir, file_name)
+        return fig_path, file_name
+    
+    @staticmethod
     def plot_pred_vs_actual(y_true, y_pred, model_name, title='Prediction vs Actual', show=True):
         ''' Plots and saves plot for actual vs predicted values
         INPUT: y_true: actual values,
@@ -495,18 +505,24 @@ class Visualize:
             plt.plot(y_pred, color='red')
         plt.legend(['Actual', 'Predicted'])
         
-        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        file_name = f'{model_name}-{title}-{now}.png'
-        fig_dir = os.path.join(PROJECT_DIR, r'figures')
-        fig_path = os.path.join(fig_dir, file_name)
+        fig_path, file_name = Visualize.construct_fig_path(model_name, title)
         plt.savefig(fig_path)
-        logger.info(f'Plot {file_name} saved to {fig_path}')
+        logger.info(f'Plot "{file_name}" saved to "{fig_path}"')
         
         if show == True:
             plt.show()
         
+    @staticmethod
+    def plot_1_by_2(df, model_name, col_before='Adj Close', col_after='Adj Close - log', title1='Original Series', title2='Modified Series', show=True):
+        ''' Plots and saaves plot of 2 subplots'''
+        fig, axes = plt.subplots(1, 2, figsize=(16,5))
+        axes[0].plot(df[col_before]); axes[0].set_title(title1)
+        axes[1].plot(df[col_after]); axes[1].set_title(title2)
 
-        
+        fig_path, file_name = Visualize.construct_fig_path(model_name, title='1 by 2')
+        plt.savefig(fig_path)
+        logger.info(f'Plot "{file_name}" saved to "{fig_path}"')
 
-
+        if show == True:
+            plt.show()
         

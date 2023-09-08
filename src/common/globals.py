@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 import os
+import joblib
 
 import matplotlib.pyplot as plt
 
@@ -39,7 +40,7 @@ class G:
         else:
             return str(Path(__file__).resolve().parents[2])
 
-    
+ 
 def split_train_valid_test(df, train_size, valid_size, test_size):
     ''' Splits dataframe into train, valid, test sets
     INPUT: df: dataframe, 
@@ -116,3 +117,10 @@ def save_errors_to_table(model, errors):
     df.to_csv(os.path.join(str(PROJECT_PATH), r'logs/models_table.csv'), index=False)
 
     logger.info(f'Errors saved to for {model} model to "logs/models_table.csv" file.')
+
+
+def save_model(model, model_name):
+    ''' Saves model
+    '''
+    joblib.dump(model, os.path.join(str(PROJECT_PATH), f'models_trained/{model_name}.pkl'))
+    logger.info(f'Model saved: "{PROJECT_PATH}/models_trained/{model_name}.pkl"')

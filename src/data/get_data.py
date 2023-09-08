@@ -169,8 +169,10 @@ class CSVsLoader(pd.DataFrame):
         for_logs = os.path.join(r'..', parts[0], parts[1], parts[2], parts[3], parts[4])
 
         df = pd.read_csv(full_path, index_col=0, parse_dates=True, date_format='yyyy-mm-dd' )
+        df.index = pd.to_datetime(df.index)
         df.sort_index(ascending=True, inplace=True)
         df.name = ticker
+
         self.__dict__.update(df.__dict__)
 
         logger.info(f'Loaded "{for_logs}". Number data points {df.shape[0]}. From "{df.index[0]}" to "{df.index[-1]}"')

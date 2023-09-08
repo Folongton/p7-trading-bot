@@ -18,7 +18,7 @@ def main( input_ticker, input_filepath=DATA_DIR_RAW, output_filepath=DATA_DIR_PR
     """
     logger = setup_logging(logger_name=__name__,
                             console_level=logging.INFO, 
-                            log_file=os.path.basename(__file__), 
+                            # log_file=os.path.basename(__file__), 
                             log_file_level=logging.INFO)
     logger.info('making final data set from raw data')
     # ---------------------------DATA WORK---------------------------------------
