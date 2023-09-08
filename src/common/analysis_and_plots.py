@@ -21,9 +21,18 @@ from ta.volume import OnBalanceVolumeIndicator
 from src.data.get_data import CSVsLoader as CSVs
 from src.common.globals import G
 
-project_dir = G.get_project_root()
-DATA_DIR = f'{project_dir}\data\\00_raw\daily_full'
+import logging
+from src.common.logs import setup_logging
 
+plt.rcParams['figure.figsize'] = (15, 5)
+plt.style.use('Solarize_Light2')
+
+PROJECT_DIR = G.get_project_root()
+DATA_DIR = f'{PROJECT_DIR}\data\\00_raw\daily_full'
+
+logger = setup_logging(logger_name=__name__,
+                        console_level=logging.INFO, 
+                        log_file_level=logging.INFO)
 
 class Analysis:
     '''Global Methods related to stock data analysis and manipulation
@@ -451,6 +460,7 @@ class Visualize:
     
     @staticmethod
     def plot_prct_gain(stocks, from_date, to_date=datetime.now()-timedelta(days=1) , title='Percent Gain'):
+        ''' Plots percent gain for list of stocks'''
         plt.figure(figsize=(15, 5))
         for stock in stocks:
             df = pd.read_csv(os.path.join(DATA_DIR, rf'{stock}-daily-full.csv'), index_col=0, parse_dates=True)
@@ -466,3 +476,37 @@ class Visualize:
         plt.title(title)
         plt.legend(stocks)
         plt.show()  
+
+    @staticmethod
+    def plot_pred_vs_actual(y_true, y_pred, model_name, title='Prediction vs Actual', show=True):
+        ''' Plots and saves plot for actual vs predicted values
+        INPUT: y_true: actual values,
+                y_pred: predicted values,
+                model_name: name of the model,
+                title: title of the plot,
+                show: whether to show the plot
+        OUTPUT: plot saved to figures folder and shown plot if show=True
+        '''
+        try:
+            plt.plot(y_true.values)
+            plt.plot(y_pred.values, color='red')
+        except AttributeError:
+            plt.plot(y_true)
+            plt.plot(y_pred, color='red')
+        plt.legend(['Actual', 'Predicted'])
+        
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f'{model_name}-{title}-{now}.png'
+        fig_dir = os.path.join(PROJECT_DIR, r'figures')
+        fig_path = os.path.join(fig_dir, file_name)
+        plt.savefig(fig_path)
+        logger.info(f'Plot {file_name} saved to {fig_path}')
+        
+        if show == True:
+            plt.show()
+        
+
+        
+
+
+        

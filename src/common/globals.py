@@ -18,8 +18,8 @@ plt.style.use('Solarize_Light2')
 PROJECT_PATH = Path(__file__).resolve().parents[2]
 
 logger = setup_logging(logger_name=__name__,
-                             console_level=logging.INFO, 
-                             log_file_level=logging.INFO)
+                        console_level=logging.INFO, 
+                        log_file_level=logging.INFO)
 
 @dataclass
 class G:
@@ -63,6 +63,11 @@ def split_train_valid_test(df, train_size, valid_size, test_size):
     logger.info(f"Total values: {df_train.shape[0]} + {df_valid.shape[0]} + {df_test.shape[0]} = {df_train.shape[0] + df_valid.shape[0] + df_test.shape[0]}")
     return df_train, df_valid, df_test
 
+def get_naive_forecast(df):
+    ''' Naive forecast is the previous day's close price '''
+    df['Close - 1'] = df['Adj Close'].shift(1)
+    return df['Close - 1']
+
 def mean_absolute_scaled_error(y_true, y_pred, naive_forecast):
     ''' MASE = MAE\MAE_naive '''
     mae = mean_absolute_percentage_error(y_true, y_pred)
@@ -86,7 +91,28 @@ def calc_errors(y_true, y_pred, naive_forecast):
     mase = mean_absolute_scaled_error(y_true, y_pred, naive_forecast)
 
     logger.info(f'Test RMSE: $ {round(rmse, 3)}')
-    logger.info(f'Test MAE: $  {round(mae, 3)}')
+    logger.info(f'Test MAE : $ {round(mae, 3)}')
     logger.info(f'Test MAPE:   {round(mape, 3)}')
     logger.info(f'Test MASE:   {round(mase, 3)}')
-    return rmse, mae, mape, mase
+    return round(rmse, 3), round(mae, 3), round(mape, 3), round(mase, 3)
+
+def save_errors_to_table(model, errors):
+    ''' Saves errors to csv file
+    INPUT:  model: str,
+            errors: dict
+    OUTPUT: None - updates csv file table with errors for all models.
+    '''
+    timestamp = pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+    df = pd.read_csv(os.path.join(str(PROJECT_PATH), r'logs/models_table.csv'))
+
+    for new_col in errors.keys():
+        if new_col not in df.columns:
+            df[new_col] = None
+    
+    dict_for_df = {'model': model, 'timestamp': timestamp}
+    dict_for_df.update(errors)
+    df = pd.concat([df, pd.DataFrame(dict_for_df, index=[0])], ignore_index=True)
+
+    df.to_csv(os.path.join(str(PROJECT_PATH), r'logs/models_table.csv'), index=False)
+
+    logger.info(f'Errors saved to for {model} model to "logs/models_table.csv" file.')
