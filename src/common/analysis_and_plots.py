@@ -526,3 +526,48 @@ class Visualize:
         if show == True:
             plt.show()
         
+    @staticmethod
+    def plot_series(x, y, model_name, format="-", start=0, show=True, end=None, title=None, xlabel=None, ylabel=None, legend=None):
+        """
+        Visualizes time series data
+
+        Args:
+        x (array of int) - contains values for the x-axis
+        y (array of int or tuple of arrays) - contains the values for the y-axis
+        format (string) - line style when plotting the graph
+        start (int) - first time step to plot
+        end (int) - last time step to plot
+        title (string) - title of the plot
+        xlabel (string) - label for the x-axis
+        ylabel (string) - label for the y-axis
+        legend (list of strings) - legend for the plot
+        """
+
+        # Check if there are more than two series to plot
+        if type(y) is tuple:
+
+            # Loop over the y elements
+            for y_curr in y:
+
+                # Plot the x and current y values
+                plt.plot(x[start:end], y_curr[start:end], format)
+
+        else:
+            # Plot the x and y values
+            plt.plot(x[start:end], y[start:end], format)
+
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+
+        if legend:
+            plt.legend(legend)
+
+        plt.title(title)
+        plt.grid(True)
+
+        fig_path, file_name = Visualize.construct_fig_path(model_name, title)
+        plt.savefig(fig_path)
+        logger.info(f'Plot "{file_name}" saved to "{fig_path}"')
+        
+        if show == True:
+            plt.show()
