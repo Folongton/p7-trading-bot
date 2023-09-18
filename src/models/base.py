@@ -14,8 +14,8 @@ config = {
     },
     'data': {
         'train_size': 0.80,
-        'valid_size': 0.195,
-        'test_size': 0.005,
+        'valid_size': 0.15,
+        'test_size': 0.05,
     }
 }
 
@@ -31,7 +31,7 @@ def main():
     naive_forecast = y_pred # naive forecast is the previous day's close price
 
     rmse, mae, mape, mase = calc_errors(y_true, y_pred, naive_forecast)
-    save_errors_to_table('Base', rmse, mae, mape, mase)
+    save_errors_to_table('Base', {'rmse': rmse,  'mae': mae, 'mape': mape, 'mase': mase})
 
     V.plot_pred_vs_actual(y_true, y_pred, os.path.basename(__file__), show=False)
 

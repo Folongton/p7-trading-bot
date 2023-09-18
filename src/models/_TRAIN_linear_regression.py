@@ -24,9 +24,9 @@ config = {
         'key_volume': 'Volume',
     },
     'data': {
-        'train_size': 0.85,
-        'valid_size': 0.145,
-        'test_size': 0.005,
+        'train_size': 0.80,
+        'valid_size': 0.15,
+        'test_size': 0.05,
     }, 
     'model': {
         'name': 'LenearRegression', 

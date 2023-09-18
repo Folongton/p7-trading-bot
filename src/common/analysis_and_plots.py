@@ -31,6 +31,10 @@ plt.style.use('Solarize_Light2')
 PROJECT_DIR = G.get_project_root()
 DATA_DIR = f'{PROJECT_DIR}\data\\00_raw\daily_full'
 
+
+
+
+
 logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO, 
                         log_file_level=logging.INFO)
@@ -481,7 +485,7 @@ class Visualize:
     @staticmethod
     def construct_fig_path(model_name, title):
         '''Constructs path for saving figure'''
-        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-5]
         file_name = f'{model_name}-{title}-{now}.png'
         fig_dir = os.path.join(PROJECT_DIR, r'figures')
         fig_path = os.path.join(fig_dir, file_name)
@@ -547,10 +551,13 @@ class Visualize:
         if type(y) is tuple:
 
             # Loop over the y elements
-            for y_curr in y:
-
-                # Plot the x and current y values
-                plt.plot(x[start:end], y_curr[start:end], format)
+            for i, y_curr in enumerate(y):
+                if i == 0:
+                    # Plot the x and current y values
+                    plt.plot(x[start:end], y_curr[start:end], format)
+                if i == 1:
+                    # Plot the current y values with a different style
+                    plt.plot(x[start:end], y_curr[start:end], format, color='orange')
 
         else:
             # Plot the x and y values

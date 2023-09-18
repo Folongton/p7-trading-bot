@@ -18,6 +18,7 @@ class FeatureEngineering(pd.DataFrame):
         self[f"{column} - log"] = np.log(self[column])
         return self
     
+    @staticmethod
     def windowed_dataset(series, window_size, batch_size, shuffle_buffer):
         """Generates dataset windows
 
@@ -50,6 +51,8 @@ class FeatureEngineering(pd.DataFrame):
         dataset = dataset.batch(batch_size).prefetch(1)
 
         return dataset
+
+
 
     # def create_rolling_min(self, column, window):
     #     self.data[f"{column} - rolling min"] = self.data[column].rolling(window).min()

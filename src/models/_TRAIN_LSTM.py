@@ -27,24 +27,29 @@ config = {
         'key_volume': 'Volume',
     },
     'data': {
-        'test_size_int': 30,
+        'test_size': 0.05,
     }, 
     'model': {
         'name': 'LSTM', 
         'window': 20,
         'batch_size' : 32,
         'shuffle_buffer_size' : 1000,
+        'epochs': 500,
     },
 }
 
-def model_summary(model):
-    logger.info(str(model.summary()))
 
 def main():
     df = CSVsLoader(ticker=config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
 
-    df_train = df.iloc[:-config['data']['test_size_int']]
-    df_test = df.iloc[-config['data']['test_size_int']:]
+    test_size_int = int(len(df) * config['data']['test_size'])
+    print('test size:',test_size_int)
+    df_train = df.iloc[:-test_size_int]
+    df_test = df.iloc[-test_size_int:]
+
+    # Normalize the training data
+    max_value = df_train['Adj Close'].max()
+    df_train['Adj Close'] = df_train['Adj Close'] / max_value
 
     train_dataset = FE.windowed_dataset(df_train['Adj Close'], 
                                         window_size=config['model']['window'], 
@@ -53,22 +58,46 @@ def main():
     
     # Build the Model
     model = tf.keras.models.Sequential([
-    tf.keras.layers.Conv1D(filters=64, kernel_size=3,
-                        strides=1,
-                        activation="relu",
-                        padding='causal',
-                        input_shape=[config['model']['window'], 1]),
-    tf.keras.layers.LSTM(64, return_sequences=True),
-    tf.keras.layers.LSTM(64),
-    tf.keras.layers.Dense(30, activation="relu"),
-    tf.keras.layers.Dense(10, activation="relu"),
-    tf.keras.layers.Dense(1),
-    tf.keras.layers.Lambda(lambda x: x * 400)
-    ])
+                                        tf.keras.layers.Conv1D(filters=64, kernel_size=3,
+                                                                strides=1,
+                                                                activation="relu",
+                                                                padding='causal',
+                                                                input_shape=[config['model']['window'], 1]),
+                                        tf.keras.layers.LSTM(64, return_sequences=True),
+                                        tf.keras.layers.LSTM(64),
+                                        tf.keras.layers.Dense(30, activation="relu"),
+                                        tf.keras.layers.Dense(10, activation="relu"),
+                                        tf.keras.layers.Dense(1),
+                                        tf.keras.layers.Lambda(lambda x: x * max_value) # Unnormalize
+                                        ])
 
-    # Print the model summary
-    model_summary(model)
+    model.summary(print_fn=logger.info)
 
+    # Set the training parameters
+    optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4) # Default is 0.001 = 1e-3
+    model.compile(loss=tf.keras.losses.Huber(), 
+                  optimizer=optimizer, 
+                  metrics=["mae"])    
+
+    # Train the model
+    history = model.fit(train_dataset, epochs=config['model']['epochs'])
+
+    # Get mae and loss from history log
+    mae=history.history['mae']
+    loss=history.history['loss']
+
+    # Plot MAE and Loss
+    V.plot_series(x=config['model']['epochs'],
+                    y=(mae, loss),
+                    title='MAE and Loss',
+                    xlabel='MAE',
+                    ylabel='Loss',
+                    legend=['MAE', 'Loss']
+                )
+
+    # Save the model
+    model.save(os.path.join(PROJECT_PATH, r'models_trained\lstm_model.h5'))
+    
 
 if __name__ == '__main__':
     main()

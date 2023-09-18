@@ -29,8 +29,8 @@ config = {
     },
     'data': {
         'train_size': 0.85,
-        'valid_size': 0.145,
-        'test_size': 0.005,
+        'valid_size': 0.15,
+        'test_size': 0.05, # 300 days 
     }, 
     'model': {
         'name': 'ARIMA', 
@@ -98,7 +98,7 @@ def main():
 
     # Split data ( using only 450 last points as our ACF plot shows the impact of the first 450 points only)
     prediction_days = int(df.shape[0]*config['data']['test_size'])
-    train_data = df.iloc[-450-prediction_days:-prediction_days]['Adj Close - log']
+    train_data = df.iloc[-1450-prediction_days:-prediction_days]['Adj Close - log']
     test_data = df.iloc[-prediction_days:]['Adj Close - log']
 
     plot_split(train_data, test_data, show=False)
