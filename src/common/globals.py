@@ -118,7 +118,6 @@ def save_errors_to_table(model, errors):
 
     logger.info(f'Errors saved to for {model} model to "logs/models_table.csv" file.')
 
-
 def save_model(model, model_name):
     ''' Saves model
     '''
