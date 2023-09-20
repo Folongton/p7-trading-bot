@@ -48,6 +48,10 @@ class FeatureEngineering(pd.DataFrame):
 
         # Create tuples with features and labels
         dataset = dataset.map(lambda window: (window[:-1], window[-1]))
+        for element in dataset:
+            print(type(element))
+            print(element)
+            break
 
         # Shuffle the windows
         dataset = dataset.shuffle(shuffle_buffer)
