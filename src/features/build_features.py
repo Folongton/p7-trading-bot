@@ -122,7 +122,7 @@ class FeatureEngineering(pd.DataFrame):
     @staticmethod
     def model_save(model, logger):
         model.save(os.path.join(PROJECT_PATH, rf'models_trained\{model._name}.keras'))
-        logger.info(f"Model saved as {model._name}.h5")
+        logger.info(f"Model saved as {model._name}.keras")
 
 
     # def create_rolling_min(self, column, window):
