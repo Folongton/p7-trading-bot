@@ -66,8 +66,8 @@ def split_train_valid_test(df, train_size, valid_size, test_size):
 
 def get_naive_forecast(df):
     ''' Naive forecast is the previous day's close price '''
-    df['Close - 1'] = df['Adj Close'].shift(1)
-    return df['Close - 1']
+    naive_series = df['Adj Close'].shift(1)
+    return naive_series
 
 def mean_absolute_scaled_error(y_true, y_pred, naive_forecast):
     ''' MASE = MAE\MAE_naive '''

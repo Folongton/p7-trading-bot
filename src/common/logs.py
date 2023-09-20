@@ -35,7 +35,7 @@ def log_model_info(config, model, logger):
     '''
     # Building a header
     logger.info('='*94)
-    logger.info(f"{'='*35} MODEL CONFIF AND SETUP {'='*35}")
+    logger.info(f"{'='*35} MODEL CONFIG AND SETUP {'='*35}")
     logger.info('='*94)
 
     # Getting info from Config

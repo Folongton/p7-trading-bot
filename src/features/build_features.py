@@ -74,18 +74,44 @@ class FeatureEngineering(pd.DataFrame):
 
         # Generate a TF Dataset from the series values
         dataset = tf.data.Dataset.from_tensor_slices(series)
+        print('--------------------------from_tensor_slices--------------------------')
+        for element in dataset:
+            print(element)
+            break
+        print('-'*100)
 
         # Window the data but only take those with the specified size
         dataset = dataset.window(window_size, shift=1, drop_remainder=True)
+        print ('-------------------------------window-----------------------------------')
+        for window in dataset:
+            for element in window:
+                print(element)
+            break
+        print('-'*100)
 
         # Flatten the windows by putting its elements in a single batch
         dataset = dataset.flat_map(lambda w: w.batch(window_size))
+        print('--------------------------------flat_map--------------------------------')
+        for x in dataset:
+            print(x)
+            break
+        print('-'*100)
 
         # Create batches of windows
         dataset = dataset.batch(batch_size).prefetch(1)
-
+        print('--------------------------------batch-----------------------------------')
+        for x in dataset:
+            print(x)
+            break
+        print('-'*100)
+    
         # Get predictions on the entire dataset
         forecast = model.predict(dataset)
+        print('--------------------------------forecast-----------------------------------')
+        for x in forecast:
+            print(x)
+            break
+        print('-'*100)
 
         return forecast
 

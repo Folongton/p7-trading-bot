@@ -1,8 +1,5 @@
 import tensorflow as tf
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 from src.common.analysis_and_plots import Visualize as V
 from src.features.build_features import FeatureEngineering as FE
 from src.common.globals import G
@@ -37,7 +34,7 @@ config = {
         'window': 20,
         'batch_size' : 30,
         'shuffle_buffer_size' : 1000,
-        'epochs' : 300,
+        'epochs' : 3,
         'optimizer': tf.keras.optimizers.Adam(),
         'loss': tf.keras.losses.Huber(),
     },
@@ -61,7 +58,7 @@ def main():
                                     shuffle_buffer=config['model']['shuffle_buffer_size'])
     
 
-    # -----------------------------Model---------------------------------------
+    # -----------------------------Model Architecture--------------------------
     model = tf.keras.models.Sequential([
             tf.keras.layers.Conv1D(filters=64, kernel_size=3,
                                     strides=1,
@@ -114,7 +111,9 @@ def main():
                                 batch_size=config['model']['batch_size'])
 
     # Drop single dimensional axis
+    print(forecast.shape)
     results = forecast.squeeze()
+    print(results.shape)
 
     V.plot_series(  x=df_test.index, 
                     y=(df_test['Adj Close'], results),
