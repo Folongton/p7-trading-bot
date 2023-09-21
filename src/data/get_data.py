@@ -177,7 +177,6 @@ class CSVsLoader(pd.DataFrame):
 
         logger.info(f'Loaded "{for_logs}". Number data points {df.shape[0]}. From "{df.index[0]}" to "{df.index[-1]}"')
 
-
     def prep_AV_data(self):
         self.drop(columns=['1. open', '2. high', '3. low', '4. close', '7. dividend amount', '8. split coefficient'], inplace=True)
         self.rename(columns={'5. adjusted close': 'Adj Close', '6. volume': 'Volume'}, inplace=True)
