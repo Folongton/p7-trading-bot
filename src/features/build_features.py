@@ -1,11 +1,6 @@
 import numpy as np
 import pandas as pd
-import tensorflow as tf
-import os
 
-from src.common.globals import G
-
-PROJECT_PATH = G.get_project_root()
 
 class FeatureEngineering(pd.DataFrame):
     def __init__(self):
@@ -23,107 +18,39 @@ class FeatureEngineering(pd.DataFrame):
         self[f"{column} - log"] = np.log(self[column])
         return self
     
-    @staticmethod
-    def windowed_dataset(series, window_size, batch_size, shuffle_buffer):
-        """Generates dataset windows
+    def drop_non_features(self):
+        ''' 
+        Drops all columns except for the Adj Close and the features
+        
+        Args:
+            df (pandas dataframe) - dataframe to change
+        Returns:
+            df (pandas dataframe) - dataframe with only the Adj Close and the features
+            '''
+        for col in self.columns:
+            if col != 'Adj Close' and col.endswith(' - 1') == False:
+                self = self.drop(columns=[col])
+
+        return self
+    
+    def create_features(self, logger):
+        '''
+        Creates features from the original dataframe by shifting the columns by 1 day
+        And then drops the columns that are not features or the 'Adj Close'
 
         Args:
-        series (array of float) - contains the values of the time series
-        window_size (int) - the number of time steps to include in the feature
-        batch_size (int) - the batch size
-        shuffle_buffer(int) - buffer size to use for the shuffle method
-
+            df (pandas dataframe) - dataframe to change
         Returns:
-        dataset (TF Dataset) - TF Dataset containing time windows
-        """
+            df (pandas dataframe) - dataframe with only the Adj Close and the features
+        '''
+        for col in self.columns:
+            self[f'{col} - 1'] = self[col].shift(1)
+        self = self.dropna()
+        self = FeatureEngineering.drop_non_features(self)
+        logger.info(f'df.shape: {self.shape}')
+        logger.info(f'df.columns: {self.columns}')
 
-        # Generate a TF Dataset from the series values
-        dataset = tf.data.Dataset.from_tensor_slices(series)
-
-        # Window the data but only take those with the specified size
-        dataset = dataset.window(window_size + 1, shift=1, drop_remainder=True)
-
-        # Flatten the windows by putting its elements in a single batch
-        dataset = dataset.flat_map(lambda window: window.batch(window_size + 1))
-
-        # Create tuples with features and labels
-        dataset = dataset.map(lambda window: (window[:-1], window[-1]))
-        for element in dataset:
-            print(type(element))
-            print(element)
-            break
-
-        # Shuffle the windows
-        dataset = dataset.shuffle(shuffle_buffer)
-
-        # Create batches of windows
-        dataset = dataset.batch(batch_size).prefetch(1)
-
-        return dataset
-    
-    @staticmethod
-    def model_forecast(model, series, window_size, batch_size):
-        """Uses an input model to generate predictions on data windows
-        This method is used for transforming data to match windowed_dataset() method
-
-        Args:
-        model (TF Keras Model) - model that accepts data windows
-        series (array of float) - contains the values of the time series
-        window_size (int) - the number of time steps to include in the window
-        batch_size (int) - the batch size
-
-        Returns:
-        forecast (numpy array) - array containing predictions
-        """
-
-        # Generate a TF Dataset from the series values
-        dataset = tf.data.Dataset.from_tensor_slices(series)
-        print('--------------------------from_tensor_slices--------------------------')
-        for element in dataset:
-            print(element)
-            break
-        print('-'*100)
-
-        # Window the data but only take those with the specified size
-        dataset = dataset.window(window_size, shift=1, drop_remainder=True)
-        print ('-------------------------------window-----------------------------------')
-        for window in dataset:
-            for element in window:
-                print(element)
-            break
-        print('-'*100)
-
-        # Flatten the windows by putting its elements in a single batch
-        dataset = dataset.flat_map(lambda w: w.batch(window_size))
-        print('--------------------------------flat_map--------------------------------')
-        for x in dataset:
-            print(x)
-            break
-        print('-'*100)
-
-        # Create batches of windows
-        dataset = dataset.batch(batch_size).prefetch(1)
-        print('--------------------------------batch-----------------------------------')
-        for x in dataset:
-            print(x)
-            break
-        print('-'*100)
-    
-        # Get predictions on the entire dataset
-        forecast = model.predict(dataset)
-        print('--------------------------------forecast-----------------------------------')
-        for x in forecast:
-            print(x)
-            break
-        print('-'*100)
-
-        return forecast
-
-    @staticmethod
-    def model_save(model, logger):
-        model.save(os.path.join(PROJECT_PATH, rf'models_trained\{model._name}.keras'))
-        logger.info(f"Model saved as {model._name}.keras")
-
+        return self
 
     # def create_rolling_min(self, column, window):
     #     self.data[f"{column} - rolling min"] = self.data[column].rolling(window).min()

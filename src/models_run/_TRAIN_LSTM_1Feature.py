@@ -1,22 +1,25 @@
+import sys, os, logging
+from datetime import datetime
 import tensorflow as tf
 
-from src.common.analysis_and_plots import Visualize as V
-from src.features.build_features import FeatureEngineering as FE
-from src.common.globals import G
-from src.common.globals import split_train_valid_test, get_naive_forecast, calc_errors, save_errors_to_table
+# ---------- Add project root to path ----------
+from dotenv import find_dotenv, load_dotenv
+load_dotenv(find_dotenv(), verbose=True) # Example:  AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY")
+PROJECT_ROOT = os.environ.get("PROJECT_ROOT")
+sys.path.append(PROJECT_ROOT)
+# ----------------------------------------------
+
+from src.common.plots import Visualize as V
+from src.models_service.models_service import TensorflowModelService as TFModelService
+from src.models_service.errors import ErrorsCalculation as ErrorsCalc
 from src.data.get_data import CSVsLoader
 from src.common.logs import setup_logging, log_model_info
-
-import logging
-import os
-from datetime import datetime
 
 logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO, 
                         log_file_level=logging.INFO)
 
-PROJECT_PATH = G.get_project_root()
-DATA_DIR_PROCESSED = os.path.join(PROJECT_PATH, r'data\03_processed\daily_full')
+DATA_DIR_PROCESSED = os.path.join(PROJECT_ROOT, r'data\03_processed\daily_full')
 
 config = {
     'AV': {
@@ -38,6 +41,9 @@ config = {
         'optimizer': tf.keras.optimizers.Adam(),
         'loss': tf.keras.losses.Huber(),
     },
+    'plots': {
+        'show': False,
+    },
 }
 
 
@@ -52,10 +58,10 @@ def main():
     # DeNormalize the training data in the last layer of the model
     max_value = df_train['Adj Close'].max()
 
-    train_dataset = FE.windowed_dataset(df_train['Adj Close'], 
-                                    window_size=config['model']['window'], 
-                                    batch_size=config['model']['batch_size'], 
-                                    shuffle_buffer=config['model']['shuffle_buffer_size'])
+    train_dataset = TFModelService.windowed_dataset_1_feature(df_train['Adj Close'], 
+                                                            window_size=config['model']['window'], 
+                                                            batch_size=config['model']['batch_size'], 
+                                                            shuffle_buffer=config['model']['shuffle_buffer_size'])
     
 
     # -----------------------------Model Architecture--------------------------
@@ -96,19 +102,20 @@ def main():
                     title='MAE_and_Loss',
                     xlabel='MAE',
                     ylabel='Loss',
-                    legend=['MAE', 'Loss']
+                    legend=['MAE', 'Loss'],
+                    show=config['plots']['show']
                 )
 
     # Save the model
-    FE.model_save(model, logger)
+    TFModelService.save_model(model, logger)
 
     # -----------------------------Predictions---------------------------------
     forecast_series = df['Adj Close'].iloc[-test_size_int - config['model']['window']:-1]
 
-    forecast = FE.model_forecast(model=model, 
-                                series=forecast_series, 
-                                window_size=config['model']['window'], 
-                                batch_size=config['model']['batch_size'])
+    forecast = TFModelService.model_forecast_1_feature(model=model, 
+                                                    series=forecast_series, 
+                                                    window_size=config['model']['window'], 
+                                                    batch_size=config['model']['batch_size'])
 
     # Drop single dimensional axis
     print(forecast.shape)
@@ -117,12 +124,15 @@ def main():
 
     V.plot_series(  x=df_test.index, 
                     y=(df_test['Adj Close'], results),
-                    model_name=config['model']['name'])
+                    model_name=config['model']['name'],
+                    title='Predictions',
+                    show=config['plots']['show'],
+                   )
     
     # -----------------------Calculate Errors----------------------------------
-    naive_forecast = get_naive_forecast(df).iloc[-len(df_test['Adj Close']):]
-    rmse, mae, mape, mase = calc_errors(df_test['Adj Close'], results, naive_forecast)
-    save_errors_to_table(config['model']['name'], {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
+    naive_forecast = ErrorsCalc.get_naive_forecast(df).iloc[-len(df_test['Adj Close']):]
+    rmse, mae, mape, mase = ErrorsCalc.calc_errors(df_test['Adj Close'], results, naive_forecast)
+    ErrorsCalc.save_errors_to_table(config['model']['name'], {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
         
 
 if __name__ == '__main__':

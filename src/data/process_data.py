@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import logging
-from src.common.logs import setup_logging
 
 from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv(), verbose=True) # Example:  AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY")
+PROJECT_ROOT = os.environ.get("PROJECT_ROOT")
+sys.path.append(PROJECT_ROOT)
 
+
+from src.common.logs import setup_logging
 from src.common.globals import G
 from src.data.get_data import CSVsLoader
 
 DATA_DIR_RAW = G.raw_daily_full_dir
-DATA_DIR_PROCESSED = os.path.join(G.get_project_root(), r'data\03_processed\daily_full')
+DATA_DIR_PROCESSED = os.path.join(PROJECT_ROOT, r'data\03_processed\daily_full')
 
 def main( input_ticker, input_filepath=DATA_DIR_RAW, output_filepath=DATA_DIR_PROCESSED):
     """ Runs data processing scripts to turn raw data from (../raw) into

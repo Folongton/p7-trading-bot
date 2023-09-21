@@ -4,6 +4,8 @@ import pandas as pd
 import requests as r
 import time
 import logging
+from abc import ABC, abstractmethod
+
 from src.common.logs import setup_logging
 
 from dotenv import find_dotenv, load_dotenv
@@ -24,8 +26,25 @@ logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO, 
                         log_file_level=logging.INFO)
 
+# ----------------------------------------------------Download Data----------------------------------------------------
+class DownloadData(ABC):
+    @abstractmethod
+    def get_daily_data(self):
+        pass
 
-class AlphaVantageAPI:
+    @abstractmethod
+    def get_daily_data_for_list(self):
+        pass
+
+    @abstractmethod
+    def get_intraday_data(self):
+        pass
+
+    @abstractmethod
+    def get_intraday_data_for_list(self):
+        pass
+
+class AlphaVantageAPI(DownloadData):
     @staticmethod
     def get_daily_data(ticker, apikey=AV_KEY, full_or_compact='full'):
         '''
@@ -150,7 +169,21 @@ class AlphaVantageAPI:
             with open(os.path.join(directory, f'{ticker}-30days-hourly.csv'), 'w') as f:
                 f.write(response.text)
 
-class CSVsLoader(pd.DataFrame):
+class YahooFinanceAPI(DownloadData):
+    pass
+
+# ----------------------------------------------------Load Data-------------------------------------------------------
+
+class LoadData(ABC):
+    @abstractmethod
+    def load_daily(self):
+        pass
+
+    @abstractmethod
+    def save_data(self):
+        pass
+    
+class CSVsLoader(LoadData, pd.DataFrame):
     def __init__(self, ticker , directory=DATA_DIR_DAILY_FULL , *args, **kwargs):
         # Create a DataFrame object (empty)
         super().__init__(*args, **kwargs)
@@ -189,6 +222,14 @@ class CSVsLoader(pd.DataFrame):
         '''
         Saves the data as a csv file into 03_processed folder.'''
         self.to_csv(os.path.join(directory, f'{self.name}-daily-full.csv'))
+
+class JsonLoader(LoadData):
+    pass
+
+class DataBaseLoader(LoadData):
+    pass
+
+
 
 if __name__ == '__main__':
     AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR_DAILY_FULL,  AV_KEY, 'full', SLEEP_TIME) # Value stocks

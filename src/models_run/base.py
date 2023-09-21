@@ -1,7 +1,7 @@
 import os
 from src.common.globals import G, split_train_valid_test, calc_errors, save_errors_to_table
 from src.data.get_data import CSVsLoader
-from src.common.analysis_and_plots import Visualize as V
+from src.common.plots import Visualize as V
 
 
 PROJECT_PATH = G.get_project_root()
