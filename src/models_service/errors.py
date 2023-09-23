@@ -16,18 +16,23 @@ logger = setup_logging(logger_name=__name__,
 class ErrorsCalculation():
     ''' 
     Class for calculating errors for models
+    And saving errors to csv file
     '''
+
+    @staticmethod
     def get_naive_forecast(df):
         ''' Naive forecast is the previous day's close price '''
         naive_series = df['Adj Close'].shift(1)
         return naive_series
-
+    
+    @staticmethod
     def mean_absolute_scaled_error(y_true, y_pred, naive_forecast):
         ''' MASE = MAE\MAE_naive '''
         mae = mean_absolute_percentage_error(y_true, y_pred)
         mae_naive = mean_absolute_percentage_error(y_true, naive_forecast)
         return mae/mae_naive
 
+    @staticmethod
     def calc_errors(y_true, y_pred, naive_forecast):
         ''' Calculates errors for model
 
@@ -50,6 +55,7 @@ class ErrorsCalculation():
         logger.info(f'Test MASE:   {round(mase, 3)}')
         return round(rmse, 3), round(mae, 3), round(mape, 3), round(mase, 3)
 
+    @staticmethod
     def save_errors_to_table(model, errors):
         ''' Saves errors to csv file
         INPUT:  model: str,

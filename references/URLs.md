@@ -1,0 +1,2 @@
+Coggle URL for Project map diagram : https://coggle.it/diagram/ZQzFbX170vn6oFsk/t/trading-bot
+Feature selection study - Analysis : https://jfin-swufe.springeropen.com/articles/10.1186/s40854-022-00441-7
