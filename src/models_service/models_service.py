@@ -20,6 +20,7 @@ class DataPreparationService(ABC):
     Also a base class for general methods
     '''
 
+
     @staticmethod
     def split_train_test(df, test_size, logger):
         '''
@@ -90,7 +91,7 @@ class TensorflowDataPreparation(DataPreparationService):
     ''' Methods for data preparation services to fit the model in tensorflow'''
     
 
-    @staticmethod
+    @staticmethod # for 1 feature (close price)
     def windowed_dataset_1_feature(series, window_size, batch_size, shuffle_buffer):
         """Generates dataset windows
 
@@ -128,64 +129,6 @@ class TensorflowDataPreparation(DataPreparationService):
 
         return dataset
     
-    @staticmethod
-    def model_forecast_1_feature(model, series, window_size, batch_size):
-        """Uses an input model to generate predictions on data windows
-        This method is used for transforming data to match windowed_dataset() method
-
-        Args:
-        model (TF Keras Model) - model that accepts data windows
-        series (array of float) - contains the values of the time series
-        window_size (int) - the number of time steps to include in the window
-        batch_size (int) - the batch size
-
-        Returns:
-        forecast (numpy array) - array containing predictions
-        """
-
-        # Generate a TF Dataset from the series values
-        dataset = tf.data.Dataset.from_tensor_slices(series)
-        print('--------------------------from_tensor_slices--------------------------')
-        for element in dataset:
-            print(element)
-            break
-        print('-'*100)
-
-        # Window the data but only take those with the specified size
-        dataset = dataset.window(window_size, shift=1, drop_remainder=True)
-        print ('-------------------------------window-----------------------------------')
-        for window in dataset:
-            for element in window:
-                print(element)
-            break
-        print('-'*100)
-
-        # Flatten the windows by putting its elements in a single batch
-        dataset = dataset.flat_map(lambda w: w.batch(window_size))
-        print('--------------------------------flat_map--------------------------------')
-        for x in dataset:
-            print(x)
-            break
-        print('-'*100)
-
-        # Create batches of windows
-        dataset = dataset.batch(batch_size).prefetch(1)
-        print('--------------------------------batch-----------------------------------')
-        for x in dataset:
-            print(x)
-            break
-        print('-'*100)
-    
-        # Get predictions on the entire dataset
-        forecast = model.predict(dataset)
-        print('--------------------------------forecast-----------------------------------')
-        for x in forecast:
-            print(x)
-            break
-        print('-'*100)
-
-        return forecast
-
     @staticmethod # for N features
     def windowed_dataset_X(df, window_size, logger, verbose=True):
         '''
@@ -345,12 +288,13 @@ class SklearnDataPreparation(DataPreparationService):
 # -----------------------------Model Post Train --------------------------
 class ModelService(ABC):
     ''' Abstract class for model services like training, prediction, saving, loading etc.'''
+
     @abstractmethod
-    def load_model(self, model_path):
+    def save_model(self, model, model_name, logger):
         pass
 
     @abstractmethod
-    def save_model(self, model, model_path):
+    def load_model(self, model_name, logger):
         pass
 
 class TensorflowModelService(ModelService):
@@ -361,8 +305,10 @@ class TensorflowModelService(ModelService):
  
 
     @staticmethod
-    def save_model(model, logger):
-        model.save(os.path.join(PROJECT_PATH, rf'models_trained\{model._name}.keras'))
+    def save_model(model, model_name=None, logger=None):
+        if model_name is None:
+            model_name = model._name
+        model.save(os.path.join(PROJECT_PATH, rf'models_trained\{model_name}.keras'))
         logger.info(f"Model saved as {model._name}.keras")
 
     @staticmethod
@@ -372,6 +318,64 @@ class TensorflowModelService(ModelService):
         model_path = os.path.join(PROJECT_PATH, rf'models_trained\{model_name}.keras')  
         logger.info(f"Model loaded from {model_path}")
         return model
+    
+    @staticmethod
+    def model_forecast_1_feature(model, series, window_size, batch_size):
+        """Uses an input model to generate predictions on data windows
+        This method is used for transforming data to match windowed_dataset() method
+
+        Args:
+        model (TF Keras Model) - model that accepts data windows
+        series (array of float) - contains the values of the time series
+        window_size (int) - the number of time steps to include in the window
+        batch_size (int) - the batch size
+
+        Returns:
+        forecast (numpy array) - array containing predictions
+        """
+
+        # Generate a TF Dataset from the series values
+        dataset = tf.data.Dataset.from_tensor_slices(series)
+        print('--------------------------from_tensor_slices--------------------------')
+        for element in dataset:
+            print(element)
+            break
+        print('-'*100)
+
+        # Window the data but only take those with the specified size
+        dataset = dataset.window(window_size, shift=1, drop_remainder=True)
+        print ('-------------------------------window-----------------------------------')
+        for window in dataset:
+            for element in window:
+                print(element)
+            break
+        print('-'*100)
+
+        # Flatten the windows by putting its elements in a single batch
+        dataset = dataset.flat_map(lambda w: w.batch(window_size))
+        print('--------------------------------flat_map--------------------------------')
+        for x in dataset:
+            print(x)
+            break
+        print('-'*100)
+
+        # Create batches of windows
+        dataset = dataset.batch(batch_size).prefetch(1)
+        print('--------------------------------batch-----------------------------------')
+        for x in dataset:
+            print(x)
+            break
+        print('-'*100)
+    
+        # Get predictions on the entire dataset
+        forecast = model.predict(dataset)
+        print('--------------------------------forecast-----------------------------------')
+        for x in forecast:
+            print(x)
+            break
+        print('-'*100)
+
+        return forecast
     
     @staticmethod
     def model_forecast(model, df, window_size, scalers:dict, verbose=True):

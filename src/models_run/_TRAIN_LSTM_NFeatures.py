@@ -108,7 +108,7 @@ def main():
                 )
 
     # Save the model
-    TFModelService.save_model(model, logger)
+    TFModelService.save_model(model=model, logger=logger)
 
 
     #------------------------Load the model if necessary--------------------------

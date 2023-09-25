@@ -18,5 +18,9 @@
     Autoencoder,
     Ansamble of Fearute selections ( also read in paper if needed),
 
-3. Consider spliting dataset randomly into sliding windows for training set, then train the model and evaluate on the test set. for different test sets (like 300 days * 5 times), and then average the performance. See more at the paper (https://jfin-swufe.springeropen.com/articles/10.1186/s40854-022-00441-7) page 21.
+6. Find literature and test myself on buckets of stocks what fundamental indicators are most important fro predicting stock price. Use them as features in the model.
+
+6. Consider spliting dataset randomly into sliding windows for training set, then train the model and evaluate on the test set. for different test sets (like 300 days * 5 times), and then average the performance. See more at the paper (https://jfin-swufe.springeropen.com/articles/10.1186/s40854-022-00441-7) page 21.
+
+7. Incorporate analysis of analysts' recommendations. WHere to find this data ? what time horizon each recommendation is for ? How to incorporate this data into the model ? LLM to look for time horizon or API has it braken down ? 
 
