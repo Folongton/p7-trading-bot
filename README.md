@@ -1,9 +1,21 @@
-P7-Trading-Bot
+Trading-Bot
 ==============================
 
 My private pet Project for Trading bot and stock/crypto analysis
+---------------- For potential employers ----------------------
+#### What was done 
+1. Exploration Analysis of stocks and their indicators you will find in folder "notebooks"
+2. Data retrieved from AlphaVantage provider via API
+3. A few techniques for next-day forecasting using basic features were done and outlined for comparison here: https://github.com/Folongton/p7-trading-bot/blob/main/models_table.csv
+4. By getting thru the literature and experimenting myself I came to the conclusion of using the LSTM network. The Basic Network is ready.
+5. Framework is ready for testing of new features. For feature selection Planing to use PCA ( Principal component Analysis), RF (Random Forest), and Autoencoder. With possible experimentation with Ensemble of technics.
 
-Project Organization
+
+
+
+
+================================
+Project Organization ( HAS TO BE UPDATED - THIS IN PROCESS PROJECT)
 ------------
 
     ├── LICENSE
