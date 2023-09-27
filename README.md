@@ -9,7 +9,7 @@ My private pet Project for Trading bot and stock/crypto analysis
 2. Data retrieved from AlphaVantage provider via API
 3. A few techniques for next-day forecasting using basic features were done and outlined for comparison here: https://github.com/Folongton/p7-trading-bot/blob/main/models_table.csv
 4. By getting thru the literature and experimenting myself I came to the conclusion of using the LSTM network. The Basic Network is ready.
-5. Framework is ready for testing of new features. For feature selection Planing to use PCA ( Principal component Analysis), RF (Random Forest), and Autoencoder. With possible experimentation with Ensemble of technics.
+5. Framework is ready for testing of new features. For feature selection Planing to use PCA ( Principal component Analysis), RF (Random Forest), and Autoencoder. With possible experimentation with Ensemble of technics. This set of Feature extraction formed based on this paper : https://jfin-swufe.springeropen.com/articles/10.1186/s40854-022-00441-7
 
 
 
