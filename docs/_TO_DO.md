@@ -5,6 +5,10 @@
     RSI, 
     stochastic oscilator, 
     moving average convergence-divergence,
+    Altman Z-score,
+    Yield curve and its inversion ( use 3y vs 10y),
+    50 and 150 ma,
+    Oversold signal - Larry Williams - Spx oversold signal,
 
 4. Most used fundamental indicators as per paper(page 6):
     Overall economic status of the country,
