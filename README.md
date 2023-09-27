@@ -15,7 +15,7 @@ My private pet Project for Trading bot and stock/crypto analysis
 
 
 
-================================
+================================  
 Project Organization ( HAS TO BE UPDATED - THIS IN PROCESS PROJECT)
 ------------
 
