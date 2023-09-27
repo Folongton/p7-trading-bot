@@ -1,7 +1,7 @@
 Trading-Bot
 ==============================
 
-My private pet Project for Trading bot and stock/crypto analysis
+My private pet Project for Trading bot and stock/crypto analysis  
 ---------------- For potential employers ----------------------
 #### What was done 
 1. Exploration Analysis of stocks and their indicators you will find in folder "notebooks"
