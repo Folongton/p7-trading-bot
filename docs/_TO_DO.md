@@ -17,8 +17,8 @@
     See Sven's book as well as Book on stocks from Alex.
     
 5. Most used feature selection technics to try with the model (read more specifics on the paper) with citations to other papers: 
-    RF,
-    PCA,
+    RF, (Try Recursive Feature Elimination with Cross-Validation. In sklearn if possible. read.)
+    PCA, (https://plotly.com/python/pca-visualization/),
     Autoencoder,
     Ansamble of Fearute selections ( also read in paper if needed),
 
