@@ -55,16 +55,21 @@ config = {
 def main():
     # -----------------------------Data----------------------------------------
     df = CSVsLoader(ticker=config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
+    df = FE.create_features(df, logger)
     df_train, df_test = TFDataPrep.split_train_test(df, config['data']['test_size'], logger)
-    df_train = FE.create_features(df_train, logger)
-    df_test = FE.create_features(df_test, logger)
+
+    df_test_X = df_test.drop(columns=['Adj Close'])
+    df_test_y = df_test['Adj Close']
+
+    df_train_X = df_train.drop(columns=['Adj Close'])
+    df_train_y = df_train['Adj Close']
 
 
-    train_dataset_X, scalers_X = TFDataPrep.windowed_dataset_X(df_train, 
-                                                    window_size=config['model']['window'], 
-                                                    logger=logger,
-                                                    verbose=True)
-    train_dataset_y = TFDataPrep.windowed_dataset_y(df_train, 
+    train_dataset_X, scalers_X = TFDataPrep.windowed_dataset_X(df_train_X, 
+                                                                window_size=config['model']['window'], 
+                                                                logger=logger,
+                                                                verbose=True)
+    train_dataset_y = TFDataPrep.windowed_dataset_y(df_train_y, 
                                         window_size=config['model']['window'], 
                                         logger=logger,
                                         verbose=True)
@@ -109,6 +114,11 @@ def main():
 
     # Save the model
     TFModelService.save_model(model=model, logger=logger)
+    # save the scalers
+    print('scalers_X:', scalers_X)
+    
+    TFModelService.save_scalers(scalers=scalers_X, model_name=model._name ,logger=logger)
+
 
 
     #------------------------Load the model if necessary--------------------------
@@ -117,14 +127,15 @@ def main():
 
     # -----------------------------Predictions-----------------------------------
     results = TFModelService.model_forecast(model=model, 
-                                            df=df_test,
+                                            df=df_test_X,
                                             window_size=config['model']['window'],
                                             scalers=scalers_X,
                                             verbose=True)
-    df_test_plot = TFModelService.prep_test_df_shape(df_test, config)
+    
+    df_test_plot_y = TFModelService.prep_test_df_shape(df_test_y, config)
 
-    V.plot_series(  x=df_test_plot.index,  # as dates
-                    y=(df_test_plot['Adj Close'], results),
+    V.plot_series(  x=df_test_plot_y.index,  # as dates
+                    y=(df_test_plot_y, results),
                     model_name=config['model']['name'],
                     title='Predictions',
                     xlabel='Date',
@@ -133,8 +144,8 @@ def main():
 
 
     # -----------------------Calculate Errors----------------------------------
-    naive_forecast = ErrorCalc.get_naive_forecast(df).loc[df_test_plot.index] # Getting same days as results
-    rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_plot['Adj Close'], results, naive_forecast)
+    naive_forecast = ErrorCalc.get_naive_forecast(df).loc[df_test_plot_y.index] # Getting same days as results
+    rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_plot_y, results, naive_forecast)
     ErrorCalc.save_errors_to_table(config['model']['name'], {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
 
 

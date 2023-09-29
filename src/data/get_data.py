@@ -4,6 +4,7 @@ import pandas as pd
 import requests as r
 import time
 import logging
+import yfinance as yf
 from abc import ABC, abstractmethod
 
 from src.common.logs import setup_logging
@@ -170,10 +171,24 @@ class AlphaVantageAPI(DownloadData):
                 f.write(response.text)
 
 class YahooFinanceAPI(DownloadData):
-    pass
+    
+    @staticmethod
+    def get_daily_data(ticker, start_date, end_date):
+        '''
+        https://pypi.org/project/yfinance/
+        Returns formatted data from Yahoo Finance API
+        IN: 
+            ticker: ticker symbol
+            start_date: start date
+            end_date: end date
+        OUT: 
+            pandas dataframe'''
+
+        df = yf.download(ticker, start=start_date, end=end_date)
+        return df
+
 
 # ----------------------------------------------------Load Data-------------------------------------------------------
-
 class LoadData(ABC):
     @abstractmethod
     def load_daily(self):

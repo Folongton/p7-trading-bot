@@ -144,11 +144,8 @@ class TensorflowDataPreparation(DataPreparationService):
             dataset (tf dataset) - dataset with the windowed data
             scalers (dict) - dictionary with the scalers used for each column
         '''
-        # change the position of the target column to the end
-        df = DataPreparationService.label_column_to_end(df, 'Adj Close')
 
-        X_df = df.iloc[:, :-1]
-        y_df = df.iloc[:, -1:]
+        X_df = df.copy(deep=True)
 
         scalers = {}
         for col in X_df.columns:
@@ -156,12 +153,18 @@ class TensorflowDataPreparation(DataPreparationService):
             X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
             scalers[col] = scaler
         
-        # Creating X and y
-        X = X_df.values
-        y = y_df.values
         if verbose:
-            logger.info('---------------------------------X,y shape-----------------------------')
-            logger.info (f'X.shape: {X.shape}, y.shape: {y.shape}')
+            logger.info('---------------------------------scalers-------------------------------------')
+            logger.info (f'scalers: {scalers}')
+            logger.info('-'*100)
+
+
+        # Creating X
+        X = X_df.values
+
+        if verbose:
+            logger.info('---------------------------------X shape-----------------------------')
+            logger.info (f'X.shape: {X.shape}')
             logger.info('-'*100)
 
         # Generate a TF Dataset from the series values
@@ -212,15 +215,12 @@ class TensorflowDataPreparation(DataPreparationService):
         Returns:
             dataset (tf dataset) - dataset with the windowed data
         '''
-        # change the position of the target column to the end
-        df = DataPreparationService.label_column_to_end(df, 'Adj Close')
 
-        # Creating X and y
-        X = df.iloc[:, :-1].values
-        y = df.iloc[:, -1:].values
+        y = df.copy(deep=True)
+
         if verbose:
-            logger.info('---------------------------------X,y shape-------------------------------------')
-            logger.info (f'X.shape: {X.shape}, y.shape: {y.shape}')
+            logger.info('---------------------------------y shape-------------------------------------')
+            logger.info (f' y.shape: {y.shape}')
             logger.info('-'*100)
         
         # Generate a TF Dataset from the series values
@@ -320,6 +320,30 @@ class TensorflowModelService(ModelService):
         return model
     
     @staticmethod
+    def save_scalers(scalers, model_name, logger):
+        ''' Saves scalers
+        '''
+        joblib.dump(scalers, os.path.join(str(PROJECT_PATH), f'models_trained/{model_name}_scalers.pkl'))
+        logger.info(f'Scalers saved: "{PROJECT_PATH}/models_trained/{model_name}_scalers.pkl"')
+
+    @staticmethod
+    def load_scalers(model_name, logger):
+        ''' Loads scalers
+        '''
+        scalers = joblib.load(os.path.join(str(PROJECT_PATH), f'models_trained/{model_name}_scalers.pkl'))
+
+        # Create a dictionary with the updated keys
+        key_mapping = {}
+        for key in scalers.keys():
+            key_mapping[key] = key[:-4]
+
+        # Create a new dictionary with the updated keys and values
+        new_dict = {key_mapping[key]: value for key, value in scalers.items()}
+
+        logger.info(f'Scalers loaded: "{PROJECT_PATH}/models_trained/{model_name}_scalers.pkl"')
+        return new_dict
+    
+    @staticmethod
     def model_forecast_1_feature(model, series, window_size, batch_size):
         """Uses an input model to generate predictions on data windows
         This method is used for transforming data to match windowed_dataset() method
@@ -394,14 +418,14 @@ class TensorflowModelService(ModelService):
         '''
 
         # change the position of the target column to the end
-        df = DataPreparationService.label_column_to_end(df, 'Adj Close')
-        if verbose:
-            logger.info('---------------------------------df shape-------------------------------------')
-            logger.info (f'df.shape: {df.shape}')
-            logger.info(df.iloc[:2])
-            logger.info('-'*100)
+        # df = DataPreparationService.label_column_to_end(df, 'Adj Close')
+        # if verbose:
+        #     logger.info('---------------------------------df shape-------------------------------------')
+        #     logger.info (f'df.shape: {df.shape}')
+        #     logger.info(df.iloc[:2])
+        #     logger.info('-'*100)
 
-        X_df = df.iloc[:, :-1].copy(deep=True)
+        X_df = df.copy(deep=True)
         if verbose:
             logger.info('---------------------------------X_df shape-------------------------------------')
             logger.info (f'X_df.shape: {X_df.shape}')
@@ -466,7 +490,7 @@ class TensorflowModelService(ModelService):
                 if i > 1:
                     break
                 logger.info(f'(Prediction {i} - {x})')
-                logger.info(f'Predicted shape: {forecast.shape}')
+            logger.info(f'Predicted shape: {forecast.shape}')
             logger.info('-'*100)
 
 
