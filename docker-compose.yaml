@@ -1,0 +1,19 @@
+version: '1.0'
+services:
+  tf-gpu-custom-vas:
+    build: .        # It looks for a Dockerfile in the current directory
+    ports:
+      # - "8501:8501" # Streamlit port
+      - "8888:8888"   # tf port
+    volumes:
+      - data-volume:/data
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  data-volume:  # Named volume to persist database data
