@@ -41,10 +41,6 @@ stock_data_df = yfapi.get_daily_data(config['ticker'], start_date='2023-01-01', 
 stock_data_df = stock_data_df.tail(config['model']['window'])[::-1]
 stock_data_df = stock_data_df[['Adj Close', 'Volume']]
 
-print ('stock_data_df:')
-print (stock_data_df)
-print('stock_data_df.shape:', stock_data_df.shape)
-
 # Calculate the next day's prediction
 model = TFModelService.load_model(model_name='LSTM_42113_2023-09-20--15-58', logger=logger)
 scalers = TFModelService.load_scalers(model_name='LSTM_42113_2023-09-20--15-58', logger=logger)
