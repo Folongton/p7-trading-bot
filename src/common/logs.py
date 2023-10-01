@@ -17,7 +17,7 @@ def setup_logging(console_level=logging.INFO, log_file='Main', log_file_level=lo
     console_handler.setFormatter(log_fmt)
     console_handler.setLevel(console_level)
 
-    file_handler = logging.FileHandler(filename=f'./logs/{log_file}.log')
+    file_handler = logging.FileHandler(filename=f'../../logs/{log_file}.log') 
     file_handler.setFormatter(log_fmt)
     file_handler.setLevel(log_file_level)
 

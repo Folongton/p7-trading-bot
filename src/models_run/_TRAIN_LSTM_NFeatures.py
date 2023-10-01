@@ -24,7 +24,7 @@ logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO, 
                         log_file_level=logging.INFO)
 
-DATA_DIR_PROCESSED = os.path.join(PROJECT_ROOT, r'data\03_processed\daily_full')
+DATA_DIR_PROCESSED = os.path.join(PROJECT_ROOT, r'data/03_processed/daily_full')
 
 config = {
     'AV': {
@@ -113,16 +113,12 @@ def main():
                 )
 
     # Save the model
-    TFModelService.save_model(model=model, logger=logger)
-    # save the scalers
-    print('scalers_X:', scalers_X)
-    
+    TFModelService.save_model(model=model, logger=logger)    
     TFModelService.save_scalers(scalers=scalers_X, model_name=model._name ,logger=logger)
 
 
-
     #------------------------Load the model if necessary--------------------------
-    model = TFModelService.load_model(model_name='LSTM_42113_2023-09-20--15-58', logger=logger)
+    model = TFModelService.load_model(model_name='LSTM_42113_2023-09-30--15-48', logger=logger)
 
 
     # -----------------------------Predictions-----------------------------------

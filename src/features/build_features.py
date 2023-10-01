@@ -52,6 +52,20 @@ class FeatureEngineering(pd.DataFrame):
 
         return self
 
+    def rename_shifted_columns(self):
+        ''' 
+        Renames the shifted columns to remove the ' - 1' at the end of the column name
+
+        Args:
+            df (pandas dataframe) - dataframe to change
+        Returns:
+            df (pandas dataframe) - dataframe with the shifted columns renamed
+        '''
+        for col in self.columns:
+            if col.endswith(' - 1'):
+                self = self.rename(columns={col: col[:-4]})
+        return self
+    
     # def create_rolling_min(self, column, window):
     #     self.data[f"{column} - rolling min"] = self.data[column].rolling(window).min()
     #     return self.data

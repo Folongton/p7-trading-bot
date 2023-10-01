@@ -158,15 +158,12 @@ class Visualize:
 
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
-
         
-        if type(y) is tuple and len(y) == 2:
-            plt.legend(['Actual', 'Predicted'])
-        else:
-            try:
-                plt.legend(legend)
-            except TypeError:
-                print('No legend provided. Plotting without legend.')
+    
+        try:
+            plt.legend(legend)
+        except TypeError:
+            print('No legend provided. Plotting without legend.')
 
         plt.title(title)
         plt.grid(True)
