@@ -23,7 +23,7 @@
 	],
 
   	"postCreateCommand": [
-		"pip install -r requirements.txt",
+		"pip", "install", "-r", ".devcontainer/requirements.txt",
     	"nvidia-smi"
   	],
 
