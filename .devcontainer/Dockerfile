@@ -1,4 +1,6 @@
 FROM tensorflow/tensorflow:2.14.0-gpu-jupyter
+ENV PATH="/home/folongton/.local/bin:$PATH"
+ENV PATH="/workspaces/p7-trading-bot:$PATH"
 
 RUN apt-get update
 
@@ -16,9 +18,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
-
-ENV PATH="/home/folongton/.local/bin:$PATH"
-ENV PATH="/workspaces/p7-trading-bot:$PATH"
 # ********************************************************
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
