@@ -23,7 +23,7 @@
 	],
 
   	"postCreateCommand": [
-		"pip install -r .devcontainer/requirements.txt",
+		"pip install -r requirements.txt",
     	"nvidia-smi"
   	],
 
@@ -40,7 +40,8 @@
 		]
 		}
 	},
-	"remoteUser": "folongton"
+	"remoteUser": "folongton",
+	"containerUser": "folongton"
 	
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
