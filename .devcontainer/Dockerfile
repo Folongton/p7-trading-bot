@@ -18,6 +18,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 
 ENV PATH="/home/folongton/.local/bin:$PATH"
+ENV PATH="/workspaces/p7-trading-bot:$PATH"
 # ********************************************************
 # * Anything else you want to do like clean up goes here *
 # ********************************************************
