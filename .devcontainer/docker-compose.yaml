@@ -1,12 +1,15 @@
 version: '1.0'
 services:
   tf-gpu-custom-vas:
-    build: .        # It looks for a Dockerfile in the current directory
+    build: /.devcontainer        # It looks for a Dockerfile in the .devcontainer directory
     ports:
-      # - "8501:8501" # Streamlit port
-      - "8888:8888"   # tf port
+      - "8501:8501"   # Streamlit port
+      - "8888:8888"   # tf's Jupyrer port
     volumes:
       - data-volume:/data
+      - logs-volume:/logs
+      - figures-volume:/figures 
+      - models-trained-volume:/models_trained
     deploy:
       resources:
         reservations:
@@ -16,4 +19,12 @@ services:
               capabilities: [gpu]
 
 volumes:
-  data-volume:  # Named volume to persist database data
+  data-volume:  # Named volume to persist
+    external: true
+  logs-volume:
+    external: true
+  figures-volume:
+    external: true
+  models-trained-volume:
+    external: true
+
