@@ -17,7 +17,7 @@
 	// "updateContentCommand": "bash .devcontainer/install-dev-tools.sh",
 
   	"postCreateCommand": [
-		"pip install -r /workspaces/p7-trading-bot/.devcontainer/requirements.txt",
+		"pip install -r .devcontainer/requirements.txt",
     	"nvidia-smi"
   	],
 
@@ -33,8 +33,8 @@
 			"ms-python.vscode-pylance"
 		]
 		}
-	}
-	// "remoteUser": "vscode"
+	},
+	"remoteUser": "folongton"
 	
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
