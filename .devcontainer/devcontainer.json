@@ -9,14 +9,13 @@
 	  ],
 
 
-  	"postCreateCommand": [
+	"postCreateCommand": [
 		"pip", "install", "-r", ".devcontainer/requirements.txt",
-    	"nvidia-smi",
-
-		"SITEDIR=$(python -m site --user-site)",
-		"mkdir", "-p", "\"$SITEDIR\"",
-		"echo", "\"workspaces/p7-trading-bot\"", ">", "\"$SITEDIR/arbitrary_name.pth\"" 
+		"nvidia-smi"
   	],
+	
+	// This command adds our project dir to PATH as described here :https://stackoverflow.com/questions/3402168/permanently-add-a-directory-to-pythonpath/12311321#12311321
+	"postStartCommand": "SITEDIR=$(python -m site --user-site) && mkdir -p \"$SITEDIR\" && echo \"/workspaces/p7-trading-bot\" > \"$SITEDIR/arbitrary_name.pth\"",
 
 	"customizations": {
 		"vscode": {
