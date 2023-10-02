@@ -24,3 +24,8 @@ ENV PATH="/home/folongton/.local/bin:$PATH"
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
+
+COPY ./data /home/workspaces/p7-trading-bot/data
+COPY ./figures /home/workspaces/p7-trading-bot/figures
+COPY ./logs /home/workspaces/p7-trading-bot/logs
+COPY ./models_trained /home/workspaces/p7-trading-bot/models_trained

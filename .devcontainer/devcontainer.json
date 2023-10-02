@@ -8,19 +8,6 @@
 		"--gpus=all"  
 	  ],
 
-	// "remoteEnv": {
-	// 	"PATH": "${containerEnv:PATH}:/usr/local/cuda/bin",
-	// 	"LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
-	// 	"XLA_FLAGS": "--xla_gpu_cuda_data_dir=/usr/local/cuda"
-	// },
-
-	// "updateContentCommand": "bash .devcontainer/install-dev-tools.sh",
-	"mounts": [
-		"source=D:\\Study 2018 and later\\Mignimind Bootcamp\\Code\\P7-Trading-Bot\\data,target=/home/folongton/p7-trading-bot,type=bind,consistency=cached",
-		"source=D:\\Study 2018 and later\\Mignimind Bootcamp\\Code\\P7-Trading-Bot\\figures,target=/home/folongton/p7-trading-bot/figures,type=bind,consistency=cached",
-		"source=D:\\Study 2018 and later\\Mignimind Bootcamp\\Code\\P7-Trading-Bot\\logs,target=/home/folongton/p7-trading-bot/logs,type=bind,consistency=cached",
-		"source=D:\\Study 2018 and later\\Mignimind Bootcamp\\Code\\P7-Trading-Bot\\models_trained,target=/home/folongton/p7-trading-bot/models_trained,type=bind,consistency=cached"
-	],
 
   	"postCreateCommand": [
 		"pip", "install", "-r", ".devcontainer/requirements.txt",
@@ -37,7 +24,10 @@
 			"ms-toolsai.jupyter-renderers",
 			"ms-toolsai.vscode-jupyter-slideshow",
 			"ms-python.vscode-pylance"
-		]
+		],
+		"settings": {
+			"terminal.integrated.shell.linux": "/bin/bash"		
+		}
 		}
 	},
 	"remoteUser": "folongton",
