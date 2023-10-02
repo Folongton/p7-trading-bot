@@ -1,9 +1,12 @@
-FROM tensorflow/tensorflow:latest-gpu
+FROM tensorflow/tensorflow:2.14.0-gpu-jupyter
+
+RUN apt-get update
+RUN pip install --upgrade pip
 
 COPY . /p7-trading-bot-cont/
 
 WORKDIR /p7-trading-bot-cont
-RUN pip install --upgrade pip
+
 RUN pip install --upgrade -r requirements.txt
 
 # tensorflow default port
