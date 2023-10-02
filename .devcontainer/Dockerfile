@@ -4,7 +4,7 @@ RUN apt-get update
 RUN pip install --upgrade pip
 
 WORKDIR /p7-trading-bot
-RUN pip install --upgrade -r requirements_NO_tf.txt
+RUN pip install -r requirements_NO_tf.txt
 
 # tensorflow's Jupyter default port
 EXPOSE 8888 
