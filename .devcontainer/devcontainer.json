@@ -15,6 +15,12 @@
 	// },
 
 	// "updateContentCommand": "bash .devcontainer/install-dev-tools.sh",
+	"mounts": [
+		"source=D:/Study 2018 and later/Mignimind Bootcamp/Code/P7-Trading-Bot/data,target=/home/folongton/p7-trading-bot,type=bind,consistency=cached",
+		"source=D:/Study 2018 and later/Mignimind Bootcamp/Code/P7-Trading-Bot/figures,target=/home/folongton/p7-trading-bot/figures,type=bind,consistency=cached",
+		"source=D:/Study 2018 and later/Mignimind Bootcamp/Code/P7-Trading-Bot/logs,target=/home/folongton/p7-trading-bot/logs,type=bind,consistency=cached",
+		"source=D:/Study 2018 and later/Mignimind Bootcamp/Code/P7-Trading-Bot/models_trained,target=/home/folongton/p7-trading-bot/models_trained,type=bind,consistency=cached"
+	],
 
   	"postCreateCommand": [
 		"pip install -r .devcontainer/requirements.txt",
