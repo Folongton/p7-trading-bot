@@ -3,7 +3,7 @@ FROM tensorflow/tensorflow:2.14.0-gpu-jupyter
 RUN apt-get update
 RUN pip install --upgrade pip
 
-WORKDIR /p7-trading-bot
+WORKDIR /
 RUN pip install -r requirements_NO_tf.txt
 
 # tensorflow's Jupyter default port
