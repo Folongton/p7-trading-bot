@@ -2,7 +2,8 @@ FROM tensorflow/tensorflow:2.14.0-gpu-jupyter
 
 RUN apt-get update
 RUN pip install --upgrade pip
-RUN pip install -r requirements_NO_tf.txt
+# COPY requirements_NO_tf.txt requirements_NO_tf.txt
+# RUN pip install -r /p7-trading-bot/.devcontainer/requirements_NO_tf.txt
 
 # tensorflow's Jupyter default port
 EXPOSE 8888 
