@@ -26,8 +26,8 @@ ENV PATH="/home/folongton/.local/bin:$PATH"
 USER $USERNAME
 
 
-COPY ../data  /workspaces/p7-trading-bot/data/
-COPY ../figures /workspaces/p7-trading-bot/figures/
-COPY ../logs /workspaces/p7-trading-bot/logs/
-COPY ../models_trained /workspaces/p7-trading-bot/models_trained/
+RUN mkdir ../data
+RUN mkdir ../figures
+RUN mkdir ../logs 
+RUN mkdir ../models_trained
 
