@@ -15,7 +15,7 @@
 
 		"SITEDIR=$(python -m site --user-site)",
 		"mkdir", "-p", "\"$SITEDIR\"",
-		"echo", "\"workspaces/p7-trading-bot\"", ">", "\"$SITEDIR/somelib.pth\"" 
+		"echo", "\"workspaces/p7-trading-bot\"", ">", "\"$SITEDIR/arbitrary_name.pth\"" 
   	],
 
 	"customizations": {
