@@ -24,27 +24,3 @@ ENV PATH="/home/folongton/.local/bin:$PATH"
 
 # [Optional] Set the default user. Omit if you want to keep the default as root.
 USER $USERNAME
-
-
-
-
-
-
-
-
-
-
-# RUN pip install --upgrade pip
-# COPY requirements_NO_tf.txt requirements_NO_tf.txt
-# RUN pip install -r /p7-trading-bot/.devcontainer/requirements_NO_tf.txt
-
-# tensorflow's Jupyter default port
-# EXPOSE 8888 
-# # streamlit default port
-# EXPOSE 8501
-
-
-# WORKDIR /p7-trading-bot-cont/src
-# ENTRYPOINT ["jupyter", "lab","--ip=0.0.0.0","--allow-root","--no-browser"]
-# ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-# CMD ["sleep", "infinity"]
