@@ -2,13 +2,39 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
 	"name": "p-7--devcontainer",
-	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"build": {
-        // Path is relative to the devcontainer.json file.
-        "dockerfile": "Dockerfile"
-	},
+	"image": "tensorflow/tensorflow:2.14.0-gpu-jupyter", 
+	"runArgs": [
+		"--gpus=all"  
+	  ],
 
-	"postCreateCommand": "pip install -r /workspaces/p7-trading-bot/.devcontainer/requirements_NO_tf.txt"
+	// "remoteEnv": {
+	// 	"PATH": "${containerEnv:PATH}:/usr/local/cuda/bin",
+	// 	"LD_LIBRARY_PATH": "$LD_LIBRARY_PATH:/usr/local/cuda/lib64:/usr/local/cuda/extras/CUPTI/lib64",
+	// 	"XLA_FLAGS": "--xla_gpu_cuda_data_dir=/usr/local/cuda"
+	// },
+
+	// "updateContentCommand": "bash .devcontainer/install-dev-tools.sh",
+
+  	"postCreateCommand": [
+		"pip install -r /workspaces/p7-trading-bot/.devcontainer/requirements.txt",
+    	"nvidia-smi"
+  	],
+
+	"customizations": {
+		"vscode": {
+		"extensions": [
+			"ms-python.python",
+			"ms-toolsai.jupyter",
+			"ms-toolsai.vscode-jupyter-cell-tags",
+			"ms-toolsai.jupyter-keymap",
+			"ms-toolsai.jupyter-renderers",
+			"ms-toolsai.vscode-jupyter-slideshow",
+			"ms-python.vscode-pylance"
+		]
+		}
+	},
+	"remoteUser": "vscode"
+	
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -17,7 +43,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "uname -a",
+	// "postCreateCommand": "pip install -r /workspaces/p7-trading-bot/.devcontainer/requirements.txt"
 
 	// Configure tool-specific properties.
 	// "customizations": {},
