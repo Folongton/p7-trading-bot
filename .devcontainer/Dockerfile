@@ -26,8 +26,4 @@ ENV PATH="/home/folongton/.local/bin:$PATH"
 USER $USERNAME
 
 
-RUN mkdir ../data
-RUN mkdir ../figures
-RUN mkdir ../logs 
-RUN mkdir ../models_trained
 
