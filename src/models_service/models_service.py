@@ -151,7 +151,7 @@ class TensorflowDataPreparation(DataPreparationService):
         for col in X_df.columns:
             scaler = MinMaxScaler()
             X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
-            scalers[col] = scaler
+            scalers[col[:-4]] = scaler
         
         if verbose:
             logger.info('---------------------------------scalers-------------------------------------')
