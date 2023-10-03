@@ -315,7 +315,6 @@ class TensorflowModelService(ModelService):
     def load_model(model_name, logger):
 
         model_path = os.path.join(PROJECT_PATH, rf'models_trained/keep/{model_name}.keras')
-        print (model_path)
         model = tf.keras.models.load_model(model_path)
         logger.info(f"Model loaded from {model_path}")
         return model

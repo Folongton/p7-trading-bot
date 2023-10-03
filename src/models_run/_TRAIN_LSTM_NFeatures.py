@@ -1,14 +1,7 @@
 import os, sys, logging
 from datetime import datetime
 import tensorflow as tf
-from sklearn.preprocessing import MinMaxScaler
 
-# ---------- Add project root to path ----------
-from dotenv import find_dotenv, load_dotenv
-load_dotenv(find_dotenv(), verbose=True) # Example:  AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY")
-PROJECT_ROOT = os.environ.get("PROJECT_ROOT")
-sys.path.append(PROJECT_ROOT)
-# ----------------------------------------------
 
 from src.common.plots import Visualize as V
 from src.data.get_data import CSVsLoader
@@ -24,7 +17,7 @@ logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO, 
                         log_file_level=logging.INFO)
 
-DATA_DIR_PROCESSED = os.path.join(PROJECT_ROOT, r'data/03_processed/daily_full')
+DATA_DIR_PROCESSED = ('data/03_processed/daily_full')
 
 config = {
     'AV': {
@@ -42,7 +35,7 @@ config = {
         'window': 20,
         'batch_size' : 32,
         'shuffle_buffer_size' : 5600, # https://www.tensorflow.org/api_docs/python/tf/data/Dataset#shuffle
-        'epochs' : 3,
+        'epochs' : 1,
         'optimizer': tf.keras.optimizers.Adam(),
         'loss': tf.keras.losses.Huber(),
     },
@@ -118,7 +111,7 @@ def main():
 
 
     #------------------------Load the model if necessary--------------------------
-    model = TFModelService.load_model(model_name='LSTM_42113_2023-09-30--15-48', logger=logger)
+    model = TFModelService.load_model(model_name='LSTM_42113_2023-10-03--02-06', logger=logger)
 
 
     # -----------------------------Predictions-----------------------------------

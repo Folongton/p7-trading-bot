@@ -6,16 +6,14 @@ import time
 import logging
 import yfinance as yf
 from abc import ABC, abstractmethod
-
-from src.common.logs import setup_logging
-
-from dotenv import find_dotenv, load_dotenv
-load_dotenv(find_dotenv(), verbose=True)
-
-from src.common.globals import G
 from pathlib import Path
 
-AV_KEY = os.environ.get("ALPHA_VANTAGE_FREE_KEY")
+from src.common.logs import setup_logging
+from src.common.globals import G
+from env import Env
+
+
+AV_KEY = Env.ALPHA_VANTAGE_FREE_KEY
 CALLS_PER_MINUTE = 75
 SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 75 requests per minute with 10% buffer
 # MUST be updated for cheapest API, since AV no longer offers free API with 60 calls per minute. see here : https://www.alphavantage.co/premium/
@@ -214,7 +212,7 @@ class CSVsLoader(LoadData, pd.DataFrame):
         '''
         full_path = os.path.join(directory, f'{ticker}-daily-full.csv')
         parts = Path(full_path).parts[-5:]
-        for_logs = os.path.join(r'..', parts[0], parts[1], parts[2], parts[3], parts[4])
+        for_logs = os.path.join(r'..', parts[0], parts[1], parts[2], parts[3])
 
         df = pd.read_csv(full_path, index_col=0, parse_dates=True, date_format='yyyy-mm-dd' )
         df.index = pd.to_datetime(df.index)
