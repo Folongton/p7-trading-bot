@@ -48,9 +48,6 @@ coverage.xml
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-
 # Sphinx documentation
 docs/_build/
 
@@ -58,7 +55,7 @@ docs/_build/
 target/
 
 # DotEnv configuration
-.env
+env.py
 
 # Database
 *.db
