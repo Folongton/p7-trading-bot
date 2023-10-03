@@ -51,11 +51,15 @@ def main():
     df = FE.create_features(df, logger)
     df_train, df_test = TFDataPrep.split_train_test(df, config['data']['test_size'], logger)
 
-    df_test_X = df_test.drop(columns=['Adj Close'])
-    df_test_y = df_test['Adj Close']
-
     df_train_X = df_train.drop(columns=['Adj Close'])
     df_train_y = df_train['Adj Close']
+
+
+    df_test_X = df_test.drop(columns=['Adj Close'])
+    df_test_X = FE.rename_shifted_columns(df_test_X)
+    df_test_y = df_test['Adj Close']
+
+    
 
 
     train_dataset_X, scalers_X = TFDataPrep.windowed_dataset_X(df_train_X, 
@@ -68,50 +72,52 @@ def main():
                                         verbose=True)
     train_dataset = TFDataPrep.combine_datasets(train_dataset_X, train_dataset_y, config, logger, verbose=False)
 
-    # -----------------------------Model Architecture--------------------------
-    model = tf.keras.models.Sequential([
-            tf.keras.layers.LSTM(64, return_sequences=True, input_shape=(None,2)),
-            tf.keras.layers.LSTM(32),
-            tf.keras.layers.Dense(128, activation="relu"),
-            tf.keras.layers.Dense(64, activation="relu"),
-            tf.keras.layers.Dense(1),
-            ],
-        name=config['model']['name'])
+    # # -----------------------------Model Architecture--------------------------
+    # model = tf.keras.models.Sequential([
+    #         tf.keras.layers.LSTM(64, return_sequences=True, input_shape=(None,2)),
+    #         tf.keras.layers.LSTM(32),
+    #         tf.keras.layers.Dense(128, activation="relu"),
+    #         tf.keras.layers.Dense(64, activation="relu"),
+    #         tf.keras.layers.Dense(1),
+    #         ],
+    #     name=config['model']['name'])
 
-    model._name = f"{model._name}_{str(model.count_params())}_{datetime.now().strftime('%Y-%m-%d--%H-%M')}"
-    log_model_info(config, model, logger)
+    # model._name = f"{model._name}_{str(model.count_params())}_{datetime.now().strftime('%Y-%m-%d--%H-%M')}"
+    # log_model_info(config, model, logger)
 
 
-    # -----------------------------Model Training-------------------------------
-    model.compile(loss=config['model']['loss'], 
-                optimizer=config['model']['optimizer'], 
-                metrics=["mae"],
-                )    
+    # # -----------------------------Model Training-------------------------------
+    # model.compile(loss=config['model']['loss'], 
+    #             optimizer=config['model']['optimizer'], 
+    #             metrics=["mae"],
+    #             )    
 
-    history = model.fit(train_dataset, epochs=config['model']['epochs'])
+    # history = model.fit(train_dataset, epochs=config['model']['epochs'])
 
-    # Plot MAE and Loss
-    mae=history.history['mae']
-    loss=history.history['loss']
-    zoom = int(len(mae) * config['plots']['loss_zoom'])
+    # # Plot MAE and Loss
+    # mae=history.history['mae']
+    # loss=history.history['loss']
+    # zoom = int(len(mae) * config['plots']['loss_zoom'])
 
-    V.plot_series(x=range(config['model']['epochs'])[-zoom:],
-                    y=(mae[-zoom:],loss[-zoom:]),
-                    model_name=config['model']['name'],
-                    title='MAE_and_Loss',
-                    xlabel='MAE',
-                    ylabel='Loss',
-                    legend=['MAE', 'Loss'],
-                    show=config['plots']['show'],
-                )
+    # V.plot_series(x=range(config['model']['epochs'])[-zoom:],
+    #                 y=(mae[-zoom:],loss[-zoom:]),
+    #                 model_name=config['model']['name'],
+    #                 title='MAE_and_Loss',
+    #                 xlabel='MAE',
+    #                 ylabel='Loss',
+    #                 legend=['MAE', 'Loss'],
+    #                 show=config['plots']['show'],
+    #             )
 
-    # Save the model
-    TFModelService.save_model(model=model, logger=logger)    
-    TFModelService.save_scalers(scalers=scalers_X, model_name=model._name ,logger=logger)
+    # # Save the model
+    # TFModelService.save_model(model=model, logger=logger)    
+    # TFModelService.save_scalers(scalers=scalers_X, model_name=model._name ,logger=logger)
 
 
     #------------------------Load the model if necessary--------------------------
-    model = TFModelService.load_model(model_name='LSTM_42113_2023-10-03--02-06', logger=logger)
+    model_skaler_name = 'LSTM_42113_2023-10-03--02-23'
+    model = TFModelService.load_model(model_name=model_skaler_name, logger=logger)
+    scalers_X = TFModelService.load_scalers(model_name=model_skaler_name, logger=logger)
 
 
     # -----------------------------Predictions-----------------------------------
