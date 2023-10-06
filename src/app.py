@@ -33,7 +33,7 @@ stock_data_df = stock_data_YTD.tail(config['model']['window'])[::-1]
 stock_data_df = stock_data_df[['Adj Close', 'Volume']]
 
 # Calculate the next day's prediction
-model_name = 'LSTM_42113_2023-10-03--02-23'
+model_name = 'LSTM_42113_2023_10_03__04_26'
 model = TFModelService.load_model(model_name=model_name, logger=logger)
 scalers = TFModelService.load_scalers(model_name=model_name, logger=logger)
 

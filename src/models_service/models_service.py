@@ -316,7 +316,7 @@ class TensorflowModelService(ModelService):
 
         model_path = os.path.join(PROJECT_PATH, rf'models_trained/keep/{model_name}.keras')
         model = tf.keras.models.load_model(model_path)
-        logger.info(f"Model loaded from {model_path}")
+        logger.info(f"Model loaded from: {model_path}")
         return model
     
     @staticmethod
@@ -330,7 +330,8 @@ class TensorflowModelService(ModelService):
     def load_scalers(model_name, logger):
         ''' Loads scalers
         '''
-        scalers = joblib.load(os.path.join(str(PROJECT_PATH), f'models_trained/keep/{model_name}_scalers.pkl'))
+        scalers_path = os.path.join(str(PROJECT_PATH), f'models_trained/keep/{model_name}_scalers.pkl')
+        scalers = joblib.load(scalers_path)
 
         # Create a dictionary with the updated keys
         key_mapping = {}
@@ -340,7 +341,7 @@ class TensorflowModelService(ModelService):
         # Create a new dictionary with the updated keys and values
         new_dict = {key_mapping[key]: value for key, value in scalers.items()}
 
-        logger.info(f'Scalers loaded: "{PROJECT_PATH}/models_trained/{model_name}_scalers.pkl"')
+        logger.info(f'Scalers loaded: {scalers_path}')
         return new_dict
     
     @staticmethod
