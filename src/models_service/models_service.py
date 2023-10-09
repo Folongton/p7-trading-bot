@@ -4,6 +4,7 @@ import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 import os, joblib
 import logging
+from datetime import datetime
 
 from src.common.globals import G
 PROJECT_PATH = G.get_project_root()
@@ -343,6 +344,28 @@ class TensorflowModelService(ModelService):
 
         logger.info(f'Scalers loaded: {scalers_path}')
         return new_dict
+    
+    @staticmethod
+    def name_model(model, config):
+        '''
+        Add model name with parameters to the model object for subsequent saving and logging
+
+        IN:
+            model: model object
+            config: config dict
+        OUT:
+            model: model object with name attribute updated
+        '''
+        ticker=config['AV']['ticker']
+        name=config['model']['name']
+        window = str(config['model']['window'])
+        shuffle_buffer_size = str(config['model']['shuffle_buffer_size'])
+        batch_size = str(config['model']['batch_size'])
+        epochs = str(config['model']['epochs'])
+        n_params = str(model.count_params())
+
+        model._name = f"{ticker}_{name}_W{window}_SBS{shuffle_buffer_size}_B{batch_size}_E{epochs}_P{n_params}_{datetime.now().strftime('%Y_%m_%d__%H_%M')}"
+        return model
     
     @staticmethod
     def model_forecast_1_feature(model, series, window_size, batch_size):

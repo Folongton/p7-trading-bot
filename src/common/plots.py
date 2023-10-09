@@ -52,8 +52,8 @@ class Visualize:
     @staticmethod
     def construct_fig_path(model_name, title):
         '''Constructs path for saving figure'''
-        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-5]
-        file_name = f'{model_name}-{title}-{now}.png'
+        # now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f")[:-5]
+        file_name = f'{title}-{model_name}.png'
         fig_dir = os.path.join(PROJECT_DIR, r'figures')
         fig_path = os.path.join(fig_dir, file_name)
         return fig_path, file_name
