@@ -5,6 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 import os, joblib
 import logging
 from datetime import datetime
+import re
 
 from src.common.globals import G
 PROJECT_PATH = G.get_project_root()
@@ -152,7 +153,7 @@ class TensorflowDataPreparation(DataPreparationService):
         for col in X_df.columns:
             scaler = MinMaxScaler()
             X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
-            scalers[col[:-4]] = scaler
+            scalers[col] = scaler
         
         if verbose:
             logger.info('---------------------------------scalers-------------------------------------')
@@ -314,11 +315,16 @@ class TensorflowModelService(ModelService):
 
     @staticmethod
     def load_model(model_name, logger):
-
-        model_path = os.path.join(PROJECT_PATH, rf'models_trained/keep/{model_name}.keras')
-        model = tf.keras.models.load_model(model_path)
-        logger.info(f"Model loaded from: {model_path}")
-        return model
+        # try to load model recursively in all subfolders of models_trained
+        for dirpath, dirnames, filenames in os.walk(os.path.join(PROJECT_PATH, 'models_trained')):
+            for name in filenames:
+                if name == f'{model_name}.keras':
+                    model_path = os.path.join(dirpath, name)
+                    model = tf.keras.models.load_model(model_path)
+                    logger.info(f"Model loaded from: {model_path}")
+                    return model
+                
+        raise FileNotFoundError(f"Model {model_name}.keras not found in {os.path.join(PROJECT_PATH, 'models_trained')}")
     
     @staticmethod
     def save_scalers(scalers, model_name, logger):
@@ -331,19 +337,26 @@ class TensorflowModelService(ModelService):
     def load_scalers(model_name, logger):
         ''' Loads scalers
         '''
-        scalers_path = os.path.join(str(PROJECT_PATH), f'models_trained/keep/{model_name}_scalers.pkl')
-        scalers = joblib.load(scalers_path)
+        # try to load scalers recursively in all subfolders of models_trained
+        for dirpath, dirnames, filenames in os.walk(os.path.join(PROJECT_PATH, 'models_trained')):
+            for name in filenames:
+                if name == f'{model_name}_scalers.pkl':
+                    scalers_path = os.path.join(dirpath, name)
+                    scalers = joblib.load(scalers_path)
 
-        # Create a dictionary with the updated keys
-        key_mapping = {}
-        for key in scalers.keys():
-            key_mapping[key] = key[:-4]
+                    # Create a dictionary with the updated keys
+                    key_mapping = {}
+                    for key in scalers.keys():
+                        key_mapping[key] = key[:-4]
 
-        # Create a new dictionary with the updated keys and values
-        new_dict = {key_mapping[key]: value for key, value in scalers.items()}
+                    # Create a new dictionary with the updated keys and values
+                    new_dict = {key_mapping[key]: value for key, value in scalers.items()}
 
-        logger.info(f'Scalers loaded: {scalers_path}')
-        return new_dict
+                    logger.info(f'Scalers loaded: {scalers_path}')
+                    return new_dict
+
+        raise FileNotFoundError(f"Scalers {model_name}_scalers.pkl not found in {os.path.join(PROJECT_PATH, 'models_trained')}")
+        
     
     @staticmethod
     def name_model(model, config):
@@ -523,7 +536,7 @@ class TensorflowModelService(ModelService):
         return forecast
 
     @staticmethod
-    def prep_test_df_shape(test_df, config):
+    def prep_test_df_shape(test_df, window_size):
         ''' 
         Prepares the test dataframe to plot the results.
         Where -config['model']['window']+1 is to account for the window size. 
@@ -533,12 +546,25 @@ class TensorflowModelService(ModelService):
         Args:
             test_df (pandas dataframe) - dataframe to change
             results (numpy array) - array with the forecast
-            config (dict) - dictionary with the configuration
+            window_size (int) - size of the window
         Returns:
             df_test_minus_window (pandas dataframe) - dataframe with the last n days removed
         '''
-        df_test_minus_window = test_df.iloc[:-config['model']['window']+1].copy(deep=True)
+        df_test_minus_window = test_df.iloc[:-window_size+1].copy(deep=True)
         return df_test_minus_window
+    
+    @staticmethod
+    def get_window_size_from_model_name(model_name):
+        ''' 
+        Gets the window size from the model name
+
+        Args:
+            model_name (string) - name of the model usually obtained from model._name
+        Returns:
+            window_size (int) - window size
+        '''
+        window_size = int(re.search(r'W(\d+)_', model_name).group(1))
+        return window_size
     
 class SklearnModelService(ModelService):
     ''' 
