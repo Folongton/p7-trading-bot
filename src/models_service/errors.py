@@ -56,7 +56,7 @@ class ErrorsCalculation():
         return round(rmse, 3), round(mae, 3), round(mape, 3), round(mase, 3)
 
     @staticmethod
-    def save_errors_to_table(model, errors):
+    def save_errors_to_table(model_name, errors):
         ''' Saves errors to csv file
         INPUT:  model: str,
                 errors: dict
@@ -69,10 +69,47 @@ class ErrorsCalculation():
             if new_col not in df.columns:
                 df[new_col] = None
         
-        dict_for_df = {'model': model, 'timestamp': timestamp}
+        dict_for_df = {'model': model_name, 'timestamp': timestamp}
         dict_for_df.update(errors)
+        
+        if ErrorsCalculation.check_model_presense(model_name):
+            dict_for_df['Saved'] = True
+        else:
+            dict_for_df['Saved'] = False
+
         df = pd.concat([df, pd.DataFrame(dict_for_df, index=[0])], ignore_index=True)
 
         df.to_csv(os.path.join(str(PROJECT_PATH), r'logs/models_table.csv'), index=False)
 
-        logger.info(f'Errors saved to for {model} model to "logs/models_table.csv" file.')
+        logger.info(f'Errors saved to for {model_name} model to "logs/models_table.csv" file.')
+
+    @staticmethod
+    def check_model_presense(model_name):
+        ''' Checks if model is already in the folder "models_trained" recursively.
+            If so, returns True, else False.
+
+        INPUT:  model_name: str
+        OUTPUT: bool
+        '''
+        print (os.path.join(str(PROJECT_PATH), r'models_trained'))
+        model_present = False
+        scalers_present = False
+        for dirpath, dirnames, filenames in os.walk(os.path.join(str(PROJECT_PATH), r'models_trained')):
+            
+            for filename in filenames:
+                if model_name in filename and filename.endswith('.keras'):
+                    model_present = True
+
+                if model_name in filename and filename.endswith('_scalers.pkl'):
+                    scalers_present = True
+
+
+        if model_present and scalers_present:
+            return True
+        elif model_present and not scalers_present:
+            raise Exception(f'Model {model_name} is present, but scalers are not')
+        elif not model_present and scalers_present:
+            raise Exception(f'Model {model_name} is not present, but scalers are')
+        else:
+            return False
+                

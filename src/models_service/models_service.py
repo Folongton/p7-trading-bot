@@ -344,16 +344,16 @@ class TensorflowModelService(ModelService):
                     scalers_path = os.path.join(dirpath, name)
                     scalers = joblib.load(scalers_path)
 
-                    # Create a dictionary with the updated keys
-                    key_mapping = {}
-                    for key in scalers.keys():
-                        key_mapping[key] = key[:-4]
+                    # # Create a dictionary with the updated keys
+                    # key_mapping = {}
+                    # for key in scalers.keys():
+                    #     key_mapping[key] = key[:-4]
 
-                    # Create a new dictionary with the updated keys and values
-                    new_dict = {key_mapping[key]: value for key, value in scalers.items()}
+                    # # Create a new dictionary with the updated keys and values
+                    # new_dict = {key_mapping[key]: value for key, value in scalers.items()}
 
                     logger.info(f'Scalers loaded: {scalers_path}')
-                    return new_dict
+                    return scalers
 
         raise FileNotFoundError(f"Scalers {model_name}_scalers.pkl not found in {os.path.join(PROJECT_PATH, 'models_trained')}")
         
@@ -454,14 +454,6 @@ class TensorflowModelService(ModelService):
             forecast (numpy array) - array with the forecast
         '''
 
-        # change the position of the target column to the end
-        # df = DataPreparationService.label_column_to_end(df, 'Adj Close')
-        # if verbose:
-        #     logger.info('---------------------------------df shape-------------------------------------')
-        #     logger.info (f'df.shape: {df.shape}')
-        #     logger.info(df.iloc[:2])
-        #     logger.info('-'*100)
-
         X_df = df.copy(deep=True)
         if verbose:
             logger.info('---------------------------------X_df shape-------------------------------------')
@@ -470,10 +462,16 @@ class TensorflowModelService(ModelService):
             logger.info('-'*100)
 
         # Scale the data
+
         for col in X_df.columns:
             scaler = scalers[col]
             X_df[col] = scaler.transform(X_df[col].values.reshape(-1,1))
         
+        if verbose:
+            logger.info('---------------------------------scalers-------------------------------------')
+            logger.info (f'scalers: {scalers}')
+
+
         # Creating X
         X = X_df.values
         if verbose:
