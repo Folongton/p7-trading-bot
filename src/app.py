@@ -1,5 +1,5 @@
 import streamlit as st
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from src.data.get_data import YahooFinanceAPI as yfapi
@@ -13,8 +13,8 @@ logger = setup_logging(logger_name=__name__,
 config = {
     'ticker': 'MSFT',
     'model': {
-        'window': 20,
-        'batch_size' : 32,
+        'window': 120,
+        'batch_size' : 128,
         
     },
 }
@@ -33,7 +33,7 @@ stock_data_df = stock_data_YTD.tail(config['model']['window'])[::-1]
 stock_data_df = stock_data_df[['Adj Close', 'Volume']]
 
 # Calculate the next day's prediction
-model_name = 'LSTM_42113_2023_10_03__04_26'
+model_name = 'MSFT_LSTM_W120_SBS5500_B128_E500_P42113_2023_10_11__23_59'
 model = TFModelService.load_model(model_name=model_name, logger=logger)
 scalers = TFModelService.load_scalers(model_name=model_name, logger=logger)
 
@@ -44,7 +44,9 @@ next_day_prediction = TFModelService.model_forecast(model=model,
                                                     verbose=False)
 
 # Display the prediction
-st.write(f'Tomorrow Microsoft will close at: $ {round(float(next_day_prediction),2)}')
+tomorrow = (datetime.today() + timedelta(days=1)).strftime('%Y-%m-%d')
+
+st.write(f'Tomorrow on {tomorrow} Microsoft will close at: $ {round(float(next_day_prediction),2)}')
 
 # display the model name
 st.write(f'Model name: {model_name}')

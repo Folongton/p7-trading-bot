@@ -139,7 +139,7 @@ class Visualize:
         ylabel (string) - label for the y-axis
         legend (list of strings) - legend for the plot
         """
-
+        plt.clf()
         # Check if there are more than two series to plot
         if type(y) is tuple:
 

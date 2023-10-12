@@ -9,7 +9,13 @@ import re
 
 from src.common.globals import G
 PROJECT_PATH = G.get_project_root()
+DATA_DIR_PROCESSED = (f'{PROJECT_PATH}/data/03_processed/daily_full')
 from src.common.logs import setup_logging
+from src.data.get_data import CSVsLoader
+from src.common.logs import setup_logging, log_model_info
+from src.features.build_features import FeatureEngineering as FE
+from src.common.plots import Visualize as V
+from src.models_service.errors import ErrorsCalculation as ErrorCalc
 
 logger = setup_logging(logger_name=__name__,
                         console_level=logging.INFO,
@@ -298,7 +304,7 @@ class ModelService(ABC):
     @abstractmethod
     def load_model(self, model_name, logger):
         pass
-
+    
 class TensorflowModelService(ModelService):
     ''' 
     Methods for model services like training, prediction, saving, loading etc. in tensorflow
@@ -307,9 +313,9 @@ class TensorflowModelService(ModelService):
  
 
     @staticmethod
-    def save_model(model, model_name=None, logger=None):
-        if model_name is None:
-            model_name = model._name
+    def save_model(model, logger=None):
+
+        model_name = model._name
         model.save(os.path.join(PROJECT_PATH, rf'models_trained/{model_name}.keras'))
         logger.info(f"Model saved as {model._name}.keras")
 
@@ -356,8 +362,8 @@ class TensorflowModelService(ModelService):
                     return scalers
 
         raise FileNotFoundError(f"Scalers {model_name}_scalers.pkl not found in {os.path.join(PROJECT_PATH, 'models_trained')}")
-        
     
+
     @staticmethod
     def name_model(model, config):
         '''
@@ -563,7 +569,7 @@ class TensorflowModelService(ModelService):
         '''
         window_size = int(re.search(r'W(\d+)_', model_name).group(1))
         return window_size
-    
+        
 class SklearnModelService(ModelService):
     ''' 
     Methods for model services like training, prediction, saving, loading etc. in sklearn
@@ -584,3 +590,167 @@ class SklearnModelService(ModelService):
         model = joblib.load(os.path.join(str(PROJECT_PATH), f'models_trained/{model_name}.pkl'))
         logger.info(f'Model loaded: "{PROJECT_PATH}/models_trained/{model_name}.pkl"')
         return model
+    
+
+# --------------------Model Train Hyper-parameters Tuning------------------
+class ModelTuningService(ABC):
+    ''' Abstract class for model tuning services like grid search, random search etc.'''
+    def __init__(self, model, config):
+        self.model = model
+        self.config = config
+
+    
+    @abstractmethod
+    def grid_search(self, train_X, train_y, valid_X, valid_y, logger):
+        ''' 
+        IN: 
+            train_X, train_y, valid_X, valid_y - dataframes
+        OUT:
+            best_params - dict
+        '''
+        pass
+
+
+class TensorflowModelTuningService(ModelTuningService):
+    '''
+    Methods for model tuning services like grid search, random search etc. in tensorflow
+    '''
+    def __init__(self, model, config):
+        super().__init__(model, config)
+
+    def data_prep(self, logger):
+        '''Data preparation for model training
+        IN:
+            self - class object with config and model
+        OUT:
+            train_dataset - tf dataset
+            scalers_X - dict
+            df_test_X - pandas dataframe
+            df_test_y - pandas dataframe
+        '''
+        df = CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
+        df = FE.create_features(df, logger)
+        df_train, df_test = TensorflowDataPreparation.split_train_test(df, self.config['data']['test_size'], logger)
+
+        df_train_X = df_train.drop(columns=['Adj Close'])
+        df_train_X = FE.rename_shifted_columns(df_train_X)
+        df_train_y = df_train['Adj Close']
+
+        df_test_X = df_test.drop(columns=['Adj Close'])
+        df_test_X = FE.rename_shifted_columns(df_test_X)
+        df_test_y = df_test['Adj Close']
+
+
+        train_dataset_X, scalers_X = TensorflowDataPreparation.windowed_dataset_X(df_train_X, 
+                                                                    window_size=self.config['model']['window'], 
+                                                                    logger=logger,
+                                                                    verbose=False)
+        train_dataset_y = TensorflowDataPreparation.windowed_dataset_y(df_train_y, 
+                                            window_size=self.config['model']['window'], 
+                                            logger=logger,
+                                            verbose=False)
+        train_dataset = TensorflowDataPreparation.combine_datasets(train_dataset_X, train_dataset_y, self.config, logger, verbose=True)
+
+
+        return train_dataset, scalers_X, df_test_X, df_test_y, df
+
+
+    def grid_search(self, logger):
+        ''' 
+        IN: 
+            self - class object with config and model
+        OUT:
+            best_params - dict
+        '''
+        best_params = {}
+
+        _config = self.config.copy()
+
+        windows = self.config['model']['window']
+        shuffle_buffer_sizes = self.config['model']['shuffle_buffer_size']
+        batch_sizes = self.config['model']['batch_size']
+        epochs = self.config['model']['epochs']
+
+        for window in windows:
+            _config['model']['window'] = window
+
+            for sbs in shuffle_buffer_sizes:
+                _config['model']['shuffle_buffer_size'] = sbs
+
+                for batch in batch_sizes:
+                    _config['model']['batch_size'] = batch
+
+                    for e in epochs:
+                        _config['model']['epochs'] = e
+
+                        # ----------------------------- Data Preparation -----------------------------
+                        train_dataset, scalers_X, df_test_X, df_test_y, initial_df = self.data_prep(logger)
+
+
+                        # -----------------------------Model Training-------------------------------
+                        model = TensorflowModelService.name_model(self.model, _config)
+                        log_model_info(_config, model, logger)
+
+                        self.model.compile(loss=_config['model']['loss'], 
+                                            optimizer=_config['model']['optimizer'], 
+                                            metrics=_config['model']['metrics'],
+                                            )      
+
+                        history = self.model.fit(train_dataset, epochs=_config['model']['epochs'])
+
+                        # Plot MAE and Loss
+                        mae=history.history['mae']
+                        loss=history.history['loss']
+                        zoom = int(len(mae) * _config['plots']['loss_zoom'])
+
+                        V.plot_series(x=range(_config['model']['epochs'])[-zoom:],
+                                        y=(mae[-zoom:],loss[-zoom:]),
+                                        model_name=self.model._name,
+                                        title='Loss',
+                                        xlabel='Epochs',
+                                        ylabel=f'MAE and Loss',
+                                        legend=['MAE', f'Loss - {_config["model"]["loss"]}'],
+                                        show=_config['plots']['show'],
+                                    )
+                        
+                        # -----------------------------Model Save-----------------------------
+                        TensorflowModelService.save_model(model=self.model, logger=logger)    
+                        TensorflowModelService.save_scalers(scalers=scalers_X, model_name=self.model._name ,logger=logger)
+
+
+                        # -----------------------------Predictions-----------------------------------
+                        results = TensorflowModelService.model_forecast(model=self.model, 
+                                                                df=df_test_X,
+                                                                window_size=TensorflowModelService.get_window_size_from_model_name(self.model._name),
+                                                                scalers=scalers_X,
+                                                                verbose=False)
+
+                        df_test_plot_y = TensorflowModelService.prep_test_df_shape(df_test_y, 
+                                                                                TensorflowModelService.get_window_size_from_model_name(self.model._name))
+
+                        V.plot_series(  x=df_test_plot_y.index,  # as dates
+                                        y=(df_test_plot_y, results),
+                                        model_name=self.model._name,
+                                        title='Pred',
+                                        xlabel='Date',
+                                        ylabel='Price',
+                                        legend=['Actual', 'Predicted'],
+                                        show=_config['plots']['show'],)
+                        
+
+                        # -----------------------Calculate Errors----------------------------------
+                        naive_forecast = ErrorCalc.get_naive_forecast(initial_df).loc[df_test_plot_y.index] # Getting same days as results
+                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_plot_y, results, naive_forecast)
+                        ErrorCalc.save_errors_to_table(self.model._name, {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
+
+                        # -----------------------Log Best Params----------------------------------
+                        if best_params == {}:
+                            best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
+                        else:
+                            if mase < best_params['mase']:
+                                best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
+
+        logger.info(f'Best params: {best_params}')
+
+
+
