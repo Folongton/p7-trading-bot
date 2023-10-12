@@ -15,7 +15,7 @@
   	],
 	
 	// This command adds our project dir to PATH as described here :https://stackoverflow.com/questions/3402168/permanently-add-a-directory-to-pythonpath/12311321#12311321
-	"postStartCommand": "SITEDIR=$(python -m site --user-site) && mkdir -p \"$SITEDIR\" && echo \"/workspaces/p7-trading-bot\" > \"$SITEDIR/arbitrary_name.pth\"",
+	"postStartCommand": "SITEDIR=$(python -m site --user-site) && mkdir -p \"$SITEDIR\" && echo \"/workspaces/P7-Trading-Bot\" > \"$SITEDIR/arbitrary_name.pth\"",
 
 	"customizations": {
 		"vscode": {
