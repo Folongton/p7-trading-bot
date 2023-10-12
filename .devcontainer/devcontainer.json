@@ -26,7 +26,16 @@
 			"ms-toolsai.jupyter-keymap",
 			"ms-toolsai.jupyter-renderers",
 			"ms-toolsai.vscode-jupyter-slideshow",
-			"ms-python.vscode-pylance"
+			"ms-python.vscode-pylance",
+			"mechatroner.rainbow-csv",
+			"janisdd.vscode-edit-csv",
+			"ms-azuretools.vscode-docker",
+			"mhutchie.git-graph",
+			"github.copilot",
+			"eamodio.gitlens",
+			"mohsen1.prettify-json",
+			"sallar.vscode-duotone-dark"
+
 		],
 		"settings": {
 			"terminal.integrated.shell.linux": "/bin/bash"		
