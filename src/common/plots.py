@@ -130,15 +130,18 @@ class Visualize:
         Visualizes time series data
 
         Args:
-        x (array of int) - contains values for the x-axis
-        y (array of int or tuple of arrays) - contains the values for the y-axis
-        format (string) - line style when plotting the graph
-        start (int) - first time step to plot
-        end (int) - last time step to plot
-        title (string) - title of the plot
-        xlabel (string) - label for the x-axis
-        ylabel (string) - label for the y-axis
-        legend (list of strings) - legend for the plot
+            x (array of int) - contains values for the x-axis
+            y (array of int or tuple of arrays) - contains the values for the y-axis
+            format (string) - line style when plotting the graph
+            start (int) - first time step to plot
+            end (int) - last time step to plot
+            title (string) - title of the plot
+            xlabel (string) - label for the x-axis
+            ylabel (string) - label for the y-axis
+            legend (list of strings) - legend for the plot
+
+        Returns:
+            fig_path (string) - path to the saved figure
         """
         plt.clf()
         # Check if there are more than two series to plot
@@ -197,3 +200,5 @@ class Visualize:
         
         if show == True:
             plt.show()
+
+        return fig_path
