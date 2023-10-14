@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 import os
 
@@ -146,11 +147,33 @@ class Visualize:
             # Loop over the y elements
             for i, y_curr in enumerate(y):
                 if i == 0:
-                    # Plot the x and current y values
+                    # Plot the first y values (blue - Actual values)
                     plt.plot(x[start:end], y_curr[start:end], format)
                 if i == 1:
-                    # Plot the current y values with a different style
+                    # Plot the second y values (orange - Predicted values)
                     plt.plot(x[start:end], y_curr[start:end], format, color='orange')
+
+
+                    # Calc derivative
+                    derivatives = list(np.gradient(y_curr, 1))
+                    # if derivatives are negative 3 days in a row, plot a dot on the graph and label it "Sell"
+                    # if derivatives are positive 3 days in a row, plot a dot on the graph and label it "Buy"
+                    bought = None 
+                    for i, derivative in enumerate(derivatives):
+                        if i < 2:
+                            continue
+                        elif (derivative > 0) and (derivatives[i-1] > 0) and (derivatives[i-2] > 0) and (bought in [None, False]):
+                            bought = True
+                            plt.plot(x[i], y_curr[i], 'go')
+                            plt.text(x[i], y_curr[i], 'Buy', color='green', fontsize=14, ha='center')
+
+                        elif (derivative < 0) and (derivatives[i-1] < 0) and (derivatives[i-2] < 0) and (bought in [True]):
+                            bought = False
+                            plt.plot(x[i], y_curr[i], 'ro')
+                            plt.text(x[i], y_curr[i], 'Sell', color='red', fontsize=14, ha='center')
+
+                        
+            
 
         else:
             # Plot the x and y values
