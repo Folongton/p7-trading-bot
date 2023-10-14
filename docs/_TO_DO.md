@@ -1,4 +1,3 @@
-1. Test how the window size impacts the performance of the model. 
 2. Test how the window size impacts the performance of the model when predicting for 1, 5, 10, 20, 60 (3mo), 250 (1y) days.
 
 3. Most used technical indicators(as per paper, page 6) : 

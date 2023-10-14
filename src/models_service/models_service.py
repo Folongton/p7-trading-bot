@@ -468,7 +468,6 @@ class TensorflowModelService(ModelService):
             logger.info('-'*100)
 
         # Scale the data
-
         for col in X_df.columns:
             scaler = scalers[col]
             X_df[col] = scaler.transform(X_df[col].values.reshape(-1,1))
