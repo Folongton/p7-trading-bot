@@ -12,7 +12,7 @@
 4. Most used fundamental indicators as per paper(page 6):
     Overall economic status of the country,
     microeconomic factors (company info),
-    macroeconomic factors ( interest rates, inflation, CPI, unemployment rate, etc.),
+    macroeconomic factors ( interest rates, inflation, CPI, PPI, unemployment rate, etc.),
     See Sven's book as well as Book on stocks from Alex.
     
 5. Most used feature selection technics to try with the model (read more specifics on the paper) with citations to other papers: 
