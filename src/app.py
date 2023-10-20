@@ -13,7 +13,7 @@ logger = setup_logging(logger_name=__name__,
                         log_file_level=logging.INFO)
 
 config = {
-    'ticker': 'MSFT',
+    'tickers': ['MSFT','VGT'],
     'model': {
         'window': 120,
         'batch_size' : 128,
@@ -21,6 +21,9 @@ config = {
     },
 }
 
+tickers = config['tickers']
+
+selected_ticker = st.selectbox('Select a ticker', tickers)
 
 # Create a Streamlit app
 st.markdown("<h1 style='color: teal;'>Microsoft Stock Prediction App</h1>", unsafe_allow_html=True)
@@ -28,7 +31,7 @@ st.markdown("<h1 style='color: teal;'>Microsoft Stock Prediction App</h1>", unsa
 
 # Get the stock data
 today = datetime.today().strftime('%Y-%m-%d')
-stock_data_YTD = yfapi.get_daily_data(config['ticker'], start_date='2023-01-01', end_date=today)
+stock_data_YTD = yfapi.get_daily_data(selected_ticker, start_date='2023-01-01', end_date=today)
 stock_data_df = stock_data_YTD[stock_data_YTD.index > '2023-01-01'][::-1]
 
 # Prepare the data for the model
@@ -38,7 +41,14 @@ df_test_y = stock_data_df['Adj Close']
 
 
 # Calculate predictions and plot Buy and Sell signals
-model_name = 'MSFT_LSTM_W20_SBS5500_B32_E5_P42113_2023_10_10__21_04'
+model_names = ['MSFT_LSTM_W20_SBS5500_B32_E5_P42113_2023_10_10__21_04',
+               'VGT_LSTM_W20_SBS4965_B64_E15_P42113_2023_10_20__00_19']
+
+for mn in model_names:
+    if mn.split('_')[0] == selected_ticker:
+        model_name = mn
+        
+
 model = TFModelService.load_model(model_name=model_name, logger=logger)
 scalers = TFModelService.load_scalers(model_name=model_name, logger=logger)
 window_size = TFModelService.get_window_size_from_model_name(model._name)
@@ -64,7 +74,7 @@ fig_path = V.plot_series(x=df_test_plot_y.index,  # as dates
 st.write(f'Model name: {model_name}')
 
 # name chart in  teal "Microsoft Stock Price YTD"
-st.markdown(f"<h2 style='color: teal;'>Buy and Sell signals for {config['ticker']}</h2>", unsafe_allow_html=True)
+st.markdown(f"<h2 style='color: teal;'>Buy and Sell signals for {selected_ticker}</h2>", unsafe_allow_html=True)
 
 # load the figure and center it in the page 
 st.image(fig_path)

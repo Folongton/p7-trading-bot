@@ -1,13 +1,6 @@
-2. Test how the window size impacts the performance of the model when predicting for 1, 5, 10, 20, 60 (3mo), 250 (1y) days.
+1. It seems like the best shuffle_bufer_size = size of the dataset. It converges quiker. Also, Last run shows that with bigger window we need more epochs to get to the point of having a good treand estimation.  I'd like to run tests for larger windows [60,120] and epochs [25-100] with regular set of batch sizes. 
 
-3. Most used technical indicators(as per paper, page 6) : 
-    RSI, 
-    stochastic oscilator, 
-    moving average convergence-divergence,
-    Altman Z-score,
-    Yield curve and its inversion ( use 3y vs 10y),
-    50 and 150 ma,
-    Oversold signal - Larry Williams - Spx oversold signal,
+2. Test how the window size impacts the performance of the model when predicting for 1, 5, 10, 20, 60 (3mo), 250 (1y) days.
 
 4. Most used fundamental indicators as per paper(page 6):
     Overall economic status of the country,
