@@ -6,6 +6,7 @@ import os, joblib
 import logging
 from datetime import datetime
 import re
+import pandas as pd
 
 from src.common.globals import G
 PROJECT_PATH = G.get_project_root()
@@ -49,6 +50,9 @@ class DataPreparationService(ABC):
         df_test = df.iloc[-test_size_int:].copy(deep=True)
 
         logger.info(f'df_train.shape: {df_train.shape}, df_test.shape: {df_test.shape}')
+        logger.info(f'Last record in df_train:\n{df_train.iloc[-1]}')
+        logger.info(f'Last record in df_test:\n{df_test.iloc[-1]}')
+        logger.info(f'First record in df_test:\n{df_test.iloc[0]}')
 
         return df_train, df_test
 
@@ -156,13 +160,13 @@ class TensorflowDataPreparation(DataPreparationService):
         X_df = df.copy(deep=True)
 
         scalers = {}
-        for col in X_df.columns:
-            scaler = MinMaxScaler()
-            X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
-            scalers[col] = scaler
+        # for col in X_df.columns:
+        #     scaler = MinMaxScaler()
+        #     X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
+        #     scalers[col] = scaler
         
         if verbose:
-            logger.info('---------------------------------scalers-------------------------------------')
+            logger.info('-------------------windowed_dataset_X() - scalers----------------------')
             logger.info (f'scalers: {scalers}')
             logger.info('-'*100)
 
@@ -171,46 +175,46 @@ class TensorflowDataPreparation(DataPreparationService):
         X = X_df.values
 
         if verbose:
-            logger.info('---------------------------------X shape-----------------------------')
+            logger.info('--------------------windowed_dataset_X() - X.shape----------------------')
             logger.info (f'X.shape: {X.shape}')
             logger.info('-'*100)
 
         # Generate a TF Dataset from the series values
         dataset = tf.data.Dataset.from_tensor_slices(X)
         if verbose:
-            logger.info('--------------------------from_tensor_slices--------------------------')
+            logger.info('---------------windowed_dataset_X() - from_tensor_slices()-----------------')
             for element in dataset:
-                logger.info(element)
-                break
+                last_element = element
+            logger.info(f'Last element in dataset: {last_element}')
             logger.info('-'*100)
 
         # Window the data but only take those with the specified size
         # And add + 1 to the window size to account for the label, which we will separate later
         dataset = dataset.window(window_size, shift=1, drop_remainder=True)
         if verbose:
-            logger.info('-------------------------------window-----------------------------------')
+            logger.info('-------------------windowed_dataset_X() - window()-------------------------')
             for window in dataset:
-                logger.info(type(window))
-                logger.info(list(window.as_numpy_iterator()))
-                break
+                last_window = window
+            logger.info(f'Last window elements: {list(last_window.as_numpy_iterator())}')
             logger.info('-'*100)
         
         # Flatten the windows by putting its elements in a single batch
         dataset = dataset.flat_map(lambda window: window.batch(window_size))
         if verbose:
-            logger.info('--------------------------------flat_map--------------------------------')
+            logger.info('--------------------windowed_dataset_X() - flat_map()----------------------')
             for window in dataset:
-                logger.info(window)
-                break
+                last_window = window
+            logger.info(f'Last window after flatting: {last_window}')
             logger.info('-'*100)
 
         if verbose:
-            logger.info(f'Lenght of X = {len(list(dataset.as_numpy_iterator()))}')
+            logger.info(f'Lenght of X out of windowed_dataset_X() - {len(list(dataset.as_numpy_iterator()))}')
+            logger.info('-'*100)
 
         return dataset, scalers
 
     @staticmethod # for N features
-    def windowed_dataset_y(df, window_size, logger, verbose=True):
+    def dataset_y(df, window_size, logger, verbose=True):
         '''
         Creates a windowed dataset y from a dataframe
 
@@ -227,17 +231,17 @@ class TensorflowDataPreparation(DataPreparationService):
         y = df.copy(deep=True)
 
         if verbose:
-            logger.info('---------------------------------y shape-------------------------------------')
+            logger.info('---------------------------dataset_y() - y.shape----------------------------')
             logger.info (f' y.shape: {y.shape}')
             logger.info('-'*100)
         
         # Generate a TF Dataset from the series values
         dataset = tf.data.Dataset.from_tensor_slices(y)
         if verbose:
-            logger.info('--------------------------from_tensor_slices--------------------------')
+            logger.info('--------------------------dataset_y() - from_tensor_slices()----------------')
             for element in dataset:
-                logger.info(element)
-                break
+                last_element = element
+            logger.info(f'Last element in dataset: {last_element}')
             logger.info('-'*100)
 
         # calculate number of points we need to cut to make series evenly divisible by window_size
@@ -245,15 +249,12 @@ class TensorflowDataPreparation(DataPreparationService):
 
         # Remove the reminder elements from the end of dataset
         dataset = dataset.take(len(y) - remainder)
-        if verbose:
-            logger.info('--------------------------------take len(y)-reminder--------------------------------')
-            for window in dataset:
-                logger.info(window)
-                break
-            logger.info('-'*100)
 
         if verbose:
-            logger.info(f'Lenght of y = {len(list(dataset.as_numpy_iterator()))}')
+            logger.info('----------------dataset_y() - dataset.take(len(y) - remainder)---------------')
+            logger.info(f'Lenght of dataset y out of dataset_y() - {len(list(dataset.as_numpy_iterator()))}')
+            logger.info('-'*100)
+
         
         return dataset
    
@@ -274,7 +275,16 @@ class TensorflowDataPreparation(DataPreparationService):
             zipped_dataset (tf dataset) - dataset with the features and the target
         '''
         zipped_dataset = tf.data.Dataset.zip((train_dataset_X, train_dataset_y))
-        zipped_dataset = zipped_dataset.shuffle(config['model']['shuffle_buffer_size'] * zipped_dataset.cardinality().numpy())
+        
+        shuffle_buffer_size = int(config['model']['shuffle_buffer_size'] * number_of_windows)-1
+        zipped_dataset = zipped_dataset.shuffle(shuffle_buffer_size)
+
+        number_of_windows = len(list(zipped_dataset.as_numpy_iterator()))
+        if verbose:
+            logger.info('--------------------------------zipped_dataset-----------------------------------')
+            logger.info(f'Len of zipped_dataset (number of windows): {number_of_windows}')
+            logger.info(f"shuffle_buffer_size: {shuffle_buffer_size}")
+        
         zipped_dataset = zipped_dataset.batch(config['model']['batch_size']).prefetch(1)
 
         if verbose:
@@ -462,9 +472,9 @@ class TensorflowModelService(ModelService):
 
         X_df = df.copy(deep=True)
         if verbose:
-            logger.info('---------------------------------X_df shape-------------------------------------')
+            logger.info('---------------------------------model_forecast() - X_df shape-------------------------------------')
             logger.info (f'X_df.shape: {X_df.shape}')
-            logger.info(X_df.iloc[:2])
+            logger.info(f'Last 2 records:\n{X_df.tail(2)}')
             logger.info('-'*100)
 
         # Scale the data
@@ -473,63 +483,55 @@ class TensorflowModelService(ModelService):
             X_df[col] = scaler.transform(X_df[col].values.reshape(-1,1))
         
         if verbose:
-            logger.info('---------------------------------scalers-------------------------------------')
+            logger.info('---------------------------------model_forecast() - scalers-------------------------------------')
             logger.info (f'scalers: {scalers}')
 
 
-        # Creating X
+        # Creating X as numpy array
         X = X_df.values
-        if verbose:
-            logger.info('---------------------------------X shape-------------------------------------')
-            logger.info (f'X.shape: {X.shape}')
-            logger.info('-'*100)
-
 
         # Generate a TF Dataset from the series values
         dataset = tf.data.Dataset.from_tensor_slices(X)
         if verbose:
-            logger.info('--------------------------from_tensor_slices--------------------------')
+            logger.info('--------------------------model_forecast() - from_tensor_slices()--------------------------')
             for element in dataset:
-                logger.info(element)
-                break
+                last_element = element
+            logger.info(f'Last element in dataset: {last_element}')
             logger.info('-'*100)
 
         # Window the data but only take those with the specified size
         dataset = dataset.window(window_size, shift=1, drop_remainder=True)
         if verbose:
-            logger.info('-------------------------------window-----------------------------------')
+            logger.info('-------------------------------model_forecast() - window()-----------------------------------')
             for window in dataset:
-                logger.info(type(window))
-                logger.info(list(window.as_numpy_iterator()))
-                break
+                last_window = window
+            logger.info(f'Last window elements: {list(last_window.as_numpy_iterator())}')
             logger.info('-'*100)
         
         # Flatten the windows by putting its elements in a single batch
         dataset = dataset.flat_map(lambda window: window.batch(window_size))
         if verbose:
-            logger.info('--------------------------------flat_map--------------------------------')
+            logger.info('--------------------------------model_forecast() - flat_map()--------------------------------')
             for window in dataset:
-                logger.info(window)
-                break
+                last_window = window
+            logger.info(f'Last window after flatting: {last_window}')
             logger.info('-'*100)
 
         # batch the data
         dataset = dataset.batch(1)
         if verbose:
-            logger.info('--------------------------------batch-----------------------------------')
+            logger.info('--------------------------------model_forecast() - batch()-----------------------------------')
             for batch in dataset:
-                logger.info(batch)
-                break
+                last_batch = batch
+            logger.info(f'Last batch: {last_batch}')
             logger.info('-'*100)
             
         # Get predictions on the entire dataset
         forecast = model.predict(dataset)
         if verbose:
-            logger.info('------------------------forecast for 2 first ---------------------------')
-            for i,x in enumerate(forecast):
-                if i > 1:
-                    break
-                logger.info(f'(Prediction {i} - {x})')
+            logger.info('------------------------model_forecast() - forecast for 2 last ---------------------------')
+            for i,x in enumerate(forecast[-2:]):
+                logger.info(f'(Prediction {i-2} - {x})')
             logger.info(f'Predicted shape: {forecast.shape}')
             logger.info('-'*100)
 
@@ -553,7 +555,16 @@ class TensorflowModelService(ModelService):
         Returns:
             df_test_minus_window (pandas dataframe) - dataframe with the last n days removed
         '''
-        df_test_minus_window = test_df.iloc[:-window_size+1].copy(deep=True)
+        df_test_minus_window = test_df.iloc[window_size:].copy(deep=True)
+        logger.info(f"df_test_minus_window.shape: {df_test_minus_window.shape}")
+
+        # add one working day to the index to account for 1 day ahead prediction
+        next_date = df_test_minus_window.index[-1] + pd.DateOffset(days=1)
+        new_row = pd.Series(index=[next_date], data=[None])
+        df_test_minus_window = pd.concat([df_test_minus_window, new_row])
+
+        logger.info(f"df_test_minus_window.shape after adding next day (tomorrow) to existing data: {df_test_minus_window.shape}")
+        logger.info(f"df_test_minus_window.tail(3):\n{df_test_minus_window.tail(3)}")
         return df_test_minus_window
     
     @staticmethod
@@ -617,7 +628,7 @@ class TensorflowModelTuningService(ModelTuningService):
     def __init__(self, model, config):
         super().__init__(model, config)
 
-    def data_prep(self, logger):
+    def data_prep(self, logger, verbose=False):
         '''Data preparation for model training
         IN:
             self - class object with config and model
@@ -643,18 +654,18 @@ class TensorflowModelTuningService(ModelTuningService):
         train_dataset_X, scalers_X = TensorflowDataPreparation.windowed_dataset_X(df_train_X, 
                                                                     window_size=self.config['model']['window'], 
                                                                     logger=logger,
-                                                                    verbose=False)
-        train_dataset_y = TensorflowDataPreparation.windowed_dataset_y(df_train_y, 
+                                                                    verbose=verbose)
+        train_dataset_y = TensorflowDataPreparation.dataset_y(df_train_y, 
                                             window_size=self.config['model']['window'], 
                                             logger=logger,
-                                            verbose=False)
+                                            verbose=verbose)
         train_dataset = TensorflowDataPreparation.combine_datasets(train_dataset_X, train_dataset_y, self.config, logger, verbose=True)
 
 
         return train_dataset, scalers_X, df_test_X, df_test_y, df
 
 
-    def grid_search(self, logger):
+    def grid_search(self, logger, verbose=False):
         ''' 
         IN: 
             self - class object with config and model
@@ -690,7 +701,7 @@ class TensorflowModelTuningService(ModelTuningService):
                         _config['model']['epochs'] = e
 
                         # ----------------------------- Data Preparation -----------------------------
-                        train_dataset, scalers_X, df_test_X, df_test_y, initial_df = self.data_prep(logger)
+                        train_dataset, scalers_X, df_test_X, df_test_y, initial_df = self.data_prep(logger, verbose)
 
 
                         # -----------------------------Model Training-------------------------------
@@ -732,10 +743,10 @@ class TensorflowModelTuningService(ModelTuningService):
                                                                 df=df_test_X,
                                                                 window_size=TensorflowModelService.get_window_size_from_model_name(self.model._name),
                                                                 scalers=scalers_X,
-                                                                verbose=False)
+                                                                verbose=verbose)
 
                         df_test_plot_y = TensorflowModelService.prep_test_df_shape(df_test_y, 
-                                                                                TensorflowModelService.get_window_size_from_model_name(self.model._name))
+                                                                            TensorflowModelService.get_window_size_from_model_name(self.model._name))
 
                         V.plot_series(  x=df_test_plot_y.index,  # as dates
                                         y=(df_test_plot_y, results),
