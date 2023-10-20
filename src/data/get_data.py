@@ -13,10 +13,9 @@ from src.common.globals import G
 from env import Env
 
 
-AV_KEY = Env.ALPHA_VANTAGE_FREE_KEY
-CALLS_PER_MINUTE = 75
-SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 75 requests per minute with 10% buffer
-# MUST be updated for cheapest API, since AV no longer offers free API with 60 calls per minute. see here : https://www.alphavantage.co/premium/
+AV_KEY = Env.ALPHA_VANTAGE_PREMIUM_KEY
+CALLS_PER_MINUTE = 30
+SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 30 requests per minute with 10% buffer on 24.99 plan
 
 DATA_DIR_DAILY_FULL = G.raw_daily_full_dir
 NASDAQ_ALL = G.all_nasdaq_tickers
@@ -51,7 +50,7 @@ class AlphaVantageAPI(DownloadData):
         Returns formatted data from AlphaVantage API
         IN: API Parameters
         OUT: Json Data'''
-        url_json = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol={ticker}&apikey={apikey}&outputsize={full_or_compact}'
+        url_json = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&entitlement=delayed&symbol={ticker}&apikey={apikey}&outputsize={full_or_compact}'
         response = r.get(url_json)
         j_response = response.json()
         formated_response = j.dumps(j_response, indent=4)
@@ -67,13 +66,20 @@ class AlphaVantageAPI(DownloadData):
         for ticker in ticker_list:
             print(f'{ticker_list.index(ticker)/len(ticker_list)*100:.2f}%')
 
-            if os.path.exists(os.path.join(directory, f'{ticker}-daily-{full_or_compact}.csv')):
-                pass
-            elif os.path.exists(os.path.join(directory, f'{ticker}.json')):
-                pass
-            else:
-                data = AlphaVantageAPI.get_daily_data(ticker,apikey,full_or_compact)
+            json_path = os.path.join(directory, f'{ticker}.json')
+            csv_path = os.path.join(directory, f'{ticker}-daily-{full_or_compact}.csv')
+
+
+            if os.path.exists(csv_path) and (os.path.getmtime(csv_path) < (time.time() - 10*24*60*60)):
+                os.remove(csv_path)
+
+            if os.path.exists(json_path) and (os.path.getmtime(json_path) < (time.time() - 10*24*60*60)):
+                os.remove(json_path)
+
+            if not os.path.exists(csv_path) and not os.path.exists(json_path):
+                data = AlphaVantageAPI.get_daily_data(ticker, apikey, full_or_compact)
                 data = j.loads(data)
+
                 try:
                     df = pd.DataFrame(data['Time Series (Daily)']).T
                     df.index.name = 'Date'
@@ -85,6 +91,7 @@ class AlphaVantageAPI(DownloadData):
                     with open(os.path.join(directory, f'{ticker}.json'), 'w') as f:
                         j.dump(data, f)
                     continue
+                
         print('100.00%')
 
     @staticmethod
@@ -245,6 +252,5 @@ class DataBaseLoader(LoadData):
 
 
 if __name__ == '__main__':
-    AlphaVantageAPI.get_daily_data_for_list(['VZ', 'INTC', 'ABBV', 'F', 'JNJ'], DATA_DIR_DAILY_FULL,  AV_KEY, 'full', SLEEP_TIME) # Value stocks
-    AlphaVantageAPI.get_daily_data_for_list(['BABA', 'AMZN', 'MSFT', 'TSLA', 'GOOGL'], DATA_DIR_DAILY_FULL, AV_KEY, 'full', SLEEP_TIME) # Growth stocks
-    AlphaVantageAPI.get_daily_data_for_list(NASDAQ_ALL, DATA_DIR_DAILY_FULL, AV_KEY, 'full', SLEEP_TIME) # All NASDAQ stocks
+    AlphaVantageAPI.get_daily_data_for_list(['VGT'], DATA_DIR_DAILY_FULL, 'full', AV_KEY, SLEEP_TIME) # Individual Stock or list of stocks
+    # AlphaVantageAPI.get_daily_data_for_list(NASDAQ_ALL, DATA_DIR_DAILY_FULL, 'full', AV_KEY,  SLEEP_TIME) # All NASDAQ stocks

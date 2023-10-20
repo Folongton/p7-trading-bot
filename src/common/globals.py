@@ -20,7 +20,9 @@ class G:
     growth_tickers = ['AMZN','BABA','GOOGL','MSFT','TSLA']
     value_tikers = ['ABBV','F','INTC','JNJ','VZ']
     all_nasdaq_tickers = pd.read_csv(os.path.join(str(PROJECT_PATH), r'data/00_raw/NASDAQ All Tickers.csv'))['ticker'].tolist()
-    raw_daily_full_dir = os.path.join(str(PROJECT_PATH), r'data\00_raw\daily_full')
+
+    raw_daily_full_dir = os.path.join(str(PROJECT_PATH), r'data/00_raw/daily_full')
+    processed_daily_full_dir = os.path.join(str(PROJECT_PATH), r'data/03_processed/daily_full')
 
     @staticmethod
     def get_project_root(as_path=False):

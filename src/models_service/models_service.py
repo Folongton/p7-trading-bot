@@ -274,7 +274,7 @@ class TensorflowDataPreparation(DataPreparationService):
             zipped_dataset (tf dataset) - dataset with the features and the target
         '''
         zipped_dataset = tf.data.Dataset.zip((train_dataset_X, train_dataset_y))
-        zipped_dataset = zipped_dataset.shuffle(config['model']['shuffle_buffer_size'])
+        zipped_dataset = zipped_dataset.shuffle(config['model']['shuffle_buffer_size'] * zipped_dataset.cardinality().numpy())
         zipped_dataset = zipped_dataset.batch(config['model']['batch_size']).prefetch(1)
 
         if verbose:
@@ -378,7 +378,7 @@ class TensorflowModelService(ModelService):
         ticker=config['AV']['ticker']
         name=config['model']['name']
         window = str(config['model']['window'])
-        shuffle_buffer_size = str(config['model']['shuffle_buffer_size'])
+        shuffle_buffer_size = str(config['model']['shuffle_buffer_size']).replace('.','')
         batch_size = str(config['model']['batch_size'])
         epochs = str(config['model']['epochs'])
         n_params = str(model.count_params())
@@ -661,6 +661,13 @@ class TensorflowModelTuningService(ModelTuningService):
         OUT:
             best_params - dict
         '''
+        # check if buffer size is less than data size to avoid errors
+        data_size = len(CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED))
+        for buf_size in self.config['model']['shuffle_buffer_size']:
+            if buf_size > data_size:
+                raise ValueError(f"Buffer size from grid - {buf_size} is greater than data size - {data_size}")
+
+
         best_params = {}
 
         _config = self.config.copy()
@@ -687,8 +694,11 @@ class TensorflowModelTuningService(ModelTuningService):
 
 
                         # -----------------------------Model Training-------------------------------
-                        model = TensorflowModelService.name_model(self.model, _config)
-                        log_model_info(_config, model, logger)
+                        tf.keras.backend.clear_session()
+
+                        self.model = TensorflowModelService.name_model(self.model, _config)
+                        log_model_info(_config, self.model, logger)
+                        self.model.load_weights(f'{PROJECT_PATH}/models_trained/keep/default_model_weights.h5')
 
                         self.model.compile(loss=_config['model']['loss'], 
                                             optimizer=_config['model']['optimizer'], 
