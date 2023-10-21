@@ -160,10 +160,10 @@ class TensorflowDataPreparation(DataPreparationService):
         X_df = df.copy(deep=True)
 
         scalers = {}
-        # for col in X_df.columns:
-        #     scaler = MinMaxScaler()
-        #     X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
-        #     scalers[col] = scaler
+        for col in X_df.columns:
+            scaler = MinMaxScaler()
+            X_df[col] = scaler.fit_transform(X_df[col].values.reshape(-1,1))
+            scalers[col] = scaler
         
         if verbose:
             logger.info('-------------------windowed_dataset_X() - scalers----------------------')
@@ -171,7 +171,7 @@ class TensorflowDataPreparation(DataPreparationService):
             logger.info('-'*100)
 
 
-        # Creating X
+        # Creating X 
         X = X_df.values
 
         if verbose:
@@ -189,7 +189,6 @@ class TensorflowDataPreparation(DataPreparationService):
             logger.info('-'*100)
 
         # Window the data but only take those with the specified size
-        # And add + 1 to the window size to account for the label, which we will separate later
         dataset = dataset.window(window_size, shift=1, drop_remainder=True)
         if verbose:
             logger.info('-------------------windowed_dataset_X() - window()-------------------------')
@@ -239,23 +238,29 @@ class TensorflowDataPreparation(DataPreparationService):
         dataset = tf.data.Dataset.from_tensor_slices(y)
         if verbose:
             logger.info('--------------------------dataset_y() - from_tensor_slices()----------------')
-            for element in dataset:
+            for i,element in enumerate(dataset):
+                if i > len(y) - 4:
+                    logger.info(f'Element {i}: {element}')
                 last_element = element
             logger.info(f'Last element in dataset: {last_element}')
             logger.info('-'*100)
 
-        # calculate number of points we need to cut to make series evenly divisible by window_size
-        remainder = window_size - 1
 
-        # Remove the reminder elements from the end of dataset
-        dataset = dataset.take(len(y) - remainder)
+        # Window dataset as we did for X and batch it for 1 - as we need to predict only 1 value
+        dataset = dataset.window(window_size, shift=1, drop_remainder=True).flat_map(lambda window: window.batch(window_size))
+
+        # Map each window to its last element so we have only 1 value per window as our target
+        dataset = dataset.map(lambda window: window[-1])
 
         if verbose:
             logger.info('----------------dataset_y() - dataset.take(len(y) - remainder)---------------')
+            for element in dataset:
+                last_element = element
+            logger.info(f'Last element in dataset: {last_element}')
             logger.info(f'Lenght of dataset y out of dataset_y() - {len(list(dataset.as_numpy_iterator()))}')
             logger.info('-'*100)
 
-        
+
         return dataset
    
     @staticmethod
@@ -276,10 +281,11 @@ class TensorflowDataPreparation(DataPreparationService):
         '''
         zipped_dataset = tf.data.Dataset.zip((train_dataset_X, train_dataset_y))
         
+        number_of_windows = len(list(zipped_dataset.as_numpy_iterator()))
         shuffle_buffer_size = int(config['model']['shuffle_buffer_size'] * number_of_windows)-1
         zipped_dataset = zipped_dataset.shuffle(shuffle_buffer_size)
 
-        number_of_windows = len(list(zipped_dataset.as_numpy_iterator()))
+        
         if verbose:
             logger.info('--------------------------------zipped_dataset-----------------------------------')
             logger.info(f'Len of zipped_dataset (number of windows): {number_of_windows}')
@@ -462,7 +468,7 @@ class TensorflowModelService(ModelService):
         Args:
             model (tf model) - model to use
             window_size (int) - size of the window
-            df (pandas dataframe) - dataframe to create the dataset from
+            df (pandas dataframe) - df_test_X - dataframe to create the dataset from
             scalers (dict) - dictionary with the scalers used for each column
             verbose (bool) - whether to logger.info debug info or not
 
@@ -541,31 +547,23 @@ class TensorflowModelService(ModelService):
         return forecast
 
     @staticmethod
-    def prep_test_df_shape(test_df, window_size):
+    def add_tomorrow(df_test_y):
         ''' 
-        Prepares the test dataframe to plot the results.
-        Where -config['model']['window']+1 is to account for the window size. 
-        We can't predict for 19 days if the window size is 20, because we don't have the 20th day yet.
-        Say we have 100 days, we can only predict for 81 days, because we don't have the 82nd day yet to form the window of 20 days.
+        Adds tomorrow to the dataframe and returns index - which is dates    
 
         Args:
-            test_df (pandas dataframe) - dataframe to change
-            results (numpy array) - array with the forecast
-            window_size (int) - size of the window
+            df_test_y (pandas dataframe) - dataframe to change
         Returns:
-            df_test_minus_window (pandas dataframe) - dataframe with the last n days removed
+            DFIndex (pandas index) - Index of dates for plotting
         '''
-        df_test_minus_window = test_df.iloc[window_size:].copy(deep=True)
-        logger.info(f"df_test_minus_window.shape: {df_test_minus_window.shape}")
 
-        # add one working day to the index to account for 1 day ahead prediction
-        next_date = df_test_minus_window.index[-1] + pd.DateOffset(days=1)
-        new_row = pd.Series(index=[next_date], data=[None])
-        df_test_minus_window = pd.concat([df_test_minus_window, new_row])
+        next_date = df_test_y.index[-1] + pd.DateOffset(days=1)
+        new_row = pd.Series(index=[next_date], data=[None]) # taking previous today's price as tomorrow's price for plotting
+        df_test_y = pd.concat([df_test_y, new_row])
 
-        logger.info(f"df_test_minus_window.shape after adding next day (tomorrow) to existing data: {df_test_minus_window.shape}")
-        logger.info(f"df_test_minus_window.tail(3):\n{df_test_minus_window.tail(3)}")
-        return df_test_minus_window
+        logger.info(f"df_test_y.shape after adding next day (tomorrow) to existing data: {df_test_y.shape}")
+        logger.info(f"df_test_y.tail(3):\n{df_test_y.tail(3)}")
+        return df_test_y.index
     
     @staticmethod
     def get_window_size_from_model_name(model_name):
@@ -708,7 +706,9 @@ class TensorflowModelTuningService(ModelTuningService):
                         tf.keras.backend.clear_session()
 
                         self.model = TensorflowModelService.name_model(self.model, _config)
+                        window_size = TensorflowModelService.get_window_size_from_model_name(self.model._name)
                         log_model_info(_config, self.model, logger)
+
                         self.model.load_weights(f'{PROJECT_PATH}/models_trained/keep/default_model_weights.h5')
 
                         self.model.compile(loss=_config['model']['loss'], 
@@ -723,8 +723,8 @@ class TensorflowModelTuningService(ModelTuningService):
                         loss=history.history['loss']
                         zoom = int(len(mae) * _config['plots']['loss_zoom'])
 
-                        V.plot_series(x=range(_config['model']['epochs'])[-zoom:],
-                                        y=(mae[-zoom:],loss[-zoom:]),
+                        V.plot_series(x=(range(_config['model']['epochs'])[-zoom:], range(_config['model']['epochs'])[-zoom:]),
+                                        y=(mae[-zoom:], loss[-zoom:]),
                                         model_name=self.model._name,
                                         title='Loss',
                                         xlabel='Epochs',
@@ -737,31 +737,33 @@ class TensorflowModelTuningService(ModelTuningService):
                         TensorflowModelService.save_model(model=self.model, logger=logger)    
                         TensorflowModelService.save_scalers(scalers=scalers_X, model_name=self.model._name ,logger=logger)
 
-
+                        
                         # -----------------------------Predictions-----------------------------------
                         results = TensorflowModelService.model_forecast(model=self.model, 
                                                                 df=df_test_X,
-                                                                window_size=TensorflowModelService.get_window_size_from_model_name(self.model._name),
+                                                                window_size=window_size,
                                                                 scalers=scalers_X,
                                                                 verbose=verbose)
 
-                        df_test_plot_y = TensorflowModelService.prep_test_df_shape(df_test_y, 
-                                                                            TensorflowModelService.get_window_size_from_model_name(self.model._name))
-
-                        V.plot_series(  x=df_test_plot_y.index,  # as dates
-                                        y=(df_test_plot_y, results),
+                        df_test_y_index = TensorflowModelService.add_tomorrow(df_test_y)
+                        
+                        V.plot_series(  x=(df_test_y.index, df_test_y_index[window_size:]),  # as dates
+                                        y=(df_test_y, results),
                                         model_name=self.model._name,
                                         title='Pred',
                                         xlabel='Date',
                                         ylabel='Price',
                                         legend=['Actual', 'Predicted'],
-                                        show=_config['plots']['show'],)
+                                        show=_config['plots']['show'])
                         
-
                         # -----------------------Calculate Errors----------------------------------
-                        naive_forecast = ErrorCalc.get_naive_forecast(initial_df).loc[df_test_plot_y.index] # Getting same days as results
-                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_plot_y, results, naive_forecast)
+                        results_no_tomorrow = results[:-1]                      # results(predicted values) without prediction for tomorrow
+                        df_test_y_no_window = df_test_y.iloc[window_size:]      # actual values without window size in the beginning
+
+                        naive_forecast = ErrorCalc.get_naive_forecast(initial_df).loc[df_test_y_no_window.index] 
+                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_y_no_window, results_no_tomorrow, naive_forecast)
                         ErrorCalc.save_errors_to_table(self.model._name, {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
+
 
                         # -----------------------Log Best Params----------------------------------
                         if best_params == {}:

@@ -125,7 +125,7 @@ class Visualize:
             plt.show()
         
     @staticmethod
-    def plot_series(x, y, model_name, format="-", start=0, show=True, end=None, title=None, xlabel=None, ylabel=None, legend=None):
+    def plot_series(x, y, model_name, signal=True, format="-", show=True, title=None, xlabel=None, ylabel=None, legend=None):
         """
         Visualizes time series data
 
@@ -145,42 +145,42 @@ class Visualize:
         """
         plt.clf()
         # Check if there are more than two series to plot
-        if type(y) is tuple:
-
-            # Loop over the y elements
-            for i, y_curr in enumerate(y):
+        if type(y) is tuple and type(x) is tuple:
+            for i, zipped_t in enumerate(zip(x, y)):
+                x_curr, y_curr = zipped_t
                 if i == 0:
                     # Plot the first y values (blue - Actual values)
-                    plt.plot(x[start:end], y_curr[start:end], format)
-                if i == 1:
+                    plt.plot(x_curr, y_curr, format)
+                elif i == 1:
                     # Plot the second y values (orange - Predicted values)
-                    plt.plot(x[start:end], y_curr[start:end], format, color='orange')
+                    # cut x from start to be the same as y_curr (since y_curr is predicted values and is shorter than x by window_size)
+                    plt.plot(x_curr, y_curr, format, color='orange')
 
+                    if signal == True:
+                        # Calc derivative
+                        derivatives = list(np.gradient(y_curr, 1))
+                        # if derivatives are negative 3 days in a row, plot a dot on the graph and label it "Sell"
+                        # if derivatives are positive 3 days in a row, plot a dot on the graph and label it "Buy"
+                        bought = None 
+                        for i, derivative in enumerate(derivatives):
+                            if i < 2:
+                                continue
+                            elif (derivative > 0) and (derivatives[i-1] > 0) and (derivatives[i-2] > 0) and (bought in [None, False]):
+                                bought = True
+                                plt.plot(x_curr[i], y_curr[i], 'go')
+                                plt.text(x_curr[i], y_curr[i], 'Buy', color='green', fontsize=14, ha='center')
 
-                    # Calc derivative
-                    derivatives = list(np.gradient(y_curr, 1))
-                    # if derivatives are negative 3 days in a row, plot a dot on the graph and label it "Sell"
-                    # if derivatives are positive 3 days in a row, plot a dot on the graph and label it "Buy"
-                    bought = None 
-                    for i, derivative in enumerate(derivatives):
-                        if i < 2:
-                            continue
-                        elif (derivative > 0) and (derivatives[i-1] > 0) and (derivatives[i-2] > 0) and (bought in [None, False]):
-                            bought = True
-                            plt.plot(x[i], y_curr[i], 'go')
-                            plt.text(x[i], y_curr[i], 'Buy', color='green', fontsize=14, ha='center')
+                            elif (derivative < 0) and (derivatives[i-1] < 0) and (derivatives[i-2] < 0) and (bought in [True]):
+                                bought = False
+                                plt.plot(x_curr[i], y_curr[i], 'ro')
+                                plt.text(x_curr[i], y_curr[i], 'Sell', color='red', fontsize=14, ha='center')
 
-                        elif (derivative < 0) and (derivatives[i-1] < 0) and (derivatives[i-2] < 0) and (bought in [True]):
-                            bought = False
-                            plt.plot(x[i], y_curr[i], 'ro')
-                            plt.text(x[i], y_curr[i], 'Sell', color='red', fontsize=14, ha='center')
-
-                        
+                else:
+                    raise ValueError('More than 2 series to plot')                     
             
 
         else:
-            # Plot the x and y values
-            plt.plot(x[start:end], y[start:end], format)
+            plt.plot(x, y, format)
 
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
