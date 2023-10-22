@@ -1,4 +1,6 @@
-from src.common.globals import G, split_train_valid_test, calc_errors, save_errors_to_table, get_naive_forecast, save_model
+from src.common.globals import G
+from src.models_service.errors import ErrorsCalculation as ErrorCalc
+from src.models_service.models_service import SklearnModelService as SkModelSrvc
 from src.data.get_data import CSVsLoader
 from src.common.plots import Visualize as V
 from src.features.build_features import FeatureEngineering as FE
@@ -13,12 +15,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
 PROJECT_PATH = G.get_project_root()
-DATA_DIR_PROCESSED = os.path.join(PROJECT_PATH, r'data\03_processed\daily_full')
+DATA_DIR_PROCESSED = G.processed_daily_full_dir
 
 config = {
     'AV': {
         'key': '',
-        'ticker': 'MSFT',
+        'ticker': 'TEST',
         'outputsize': 'full',
         'key_adjusted_close': 'Adj Close',
         'key_volume': 'Volume',
@@ -60,14 +62,14 @@ def main():
     y_pred = model.predict(X_test)
     y_true = y_test
 
-    naive_forecast = get_naive_forecast(df).iloc[-len(y_true):]
-    rmse, mae, mape, mase = calc_errors(y_true, y_pred, naive_forecast)
-    save_errors_to_table(model_name, {'rmse': rmse,  'mae': mae, 'mape': mape, 'mase': mase,'r2': r2})
+    naive_forecast = ErrorCalc.get_naive_forecast(df).iloc[-len(y_true):]
+    rmse, mae, mape, mase = ErrorCalc.calc_errors(y_true, y_pred, naive_forecast)
+    ErrorCalc.save_errors_to_table(model_name, {'rmse': rmse,  'mae': mae, 'mape': mape, 'mase': mase,'r2': r2})
 
     V.plot_pred_vs_actual(y_true, y_pred, os.path.basename(__file__), show=True)
 
     # save model
-    save_model(model, model_name)
+    SkModelSrvc.save_model(model, model_name, logger)
 
 if __name__ == '__main__':
     main()

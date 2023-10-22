@@ -14,12 +14,10 @@ logger = setup_logging(logger_name=__name__,
 
 config = {
     'tickers': ['MSFT','VGT'],
-    'model': {
-        'window': 120,
-        'batch_size' : 128,
+    'model_names': ['VGT_LSTM_W20_SBS1_B128_E55_P42113_2023_10_20__22_00'],
         
-    },
-}
+    }
+
 
 tickers = config['tickers']
 
@@ -30,19 +28,18 @@ st.markdown("<h1 style='color: teal;'>Microsoft Stock Prediction App</h1>", unsa
 
 
 # Get the stock data
+
 today = datetime.today().strftime('%Y-%m-%d')
 stock_data_YTD = yfapi.get_daily_data(selected_ticker, start_date='2023-01-01', end_date=today)
-stock_data_df = stock_data_YTD[stock_data_YTD.index > '2023-01-01'][::-1]
+stock_data_df = stock_data_YTD[stock_data_YTD.index > '2023-01-01']
 
 # Prepare the data for the model
 df_test_X = stock_data_df[['Adj Close', 'Volume']]
-df_test_X = FE.rename_shifted_columns(df_test_X)
 df_test_y = stock_data_df['Adj Close']
 
 
 # Calculate predictions and plot Buy and Sell signals
-model_names = ['MSFT_LSTM_W20_SBS5500_B32_E5_P42113_2023_10_10__21_04',
-               'VGT_LSTM_W20_SBS4965_B64_E15_P42113_2023_10_20__00_19']
+model_names = config['model_names']
 
 for mn in model_names:
     if mn.split('_')[0] == selected_ticker:
@@ -59,16 +56,21 @@ results = TFModelService.model_forecast(model=model,
                                         scalers=scalers,
                                         verbose=False)
 # Create a plot of the predictions
-df_test_plot_y = TFModelService.prep_test_df_shape(df_test_y, window_size)
+shifted_for_results = df_test_y.index[window_size-1:].shift(1, freq='D')
 
-fig_path = V.plot_series(x=df_test_plot_y.index,  # as dates
-                        y=(df_test_plot_y, results),
-                        model_name=model._name,
-                        title=f'Predictions {model._name}',
-                        xlabel='Date',
-                        ylabel='Price',
-                        legend=['Actual', 'Predicted'],
-                        show=False)
+
+fig_path = V.plot_series(  
+                            # x=(range(len(df_test_y))[-last_n_days:], range(len(df_test_y.index))[window_size-1:][-last_n_days:]), 
+                            # y=(df_test_y[-last_n_days:], results[-last_n_days:]),
+                            x=(df_test_y.index, shifted_for_results), 
+                            y=(df_test_y, results),
+                            model_name=model._name,
+                            signal = True,
+                            title=f'Predictions {model._name}',
+                            xlabel='Date',
+                            ylabel='Price',
+                            legend=['Actual', 'Predicted'],
+                            show=True)
 
 # display the model name
 st.write(f'Model name: {model_name}')

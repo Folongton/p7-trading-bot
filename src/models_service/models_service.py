@@ -282,7 +282,7 @@ class TensorflowDataPreparation(DataPreparationService):
         zipped_dataset = tf.data.Dataset.zip((train_dataset_X, train_dataset_y))
         
         number_of_windows = len(list(zipped_dataset.as_numpy_iterator()))
-        shuffle_buffer_size = int(config['model']['shuffle_buffer_size'] * number_of_windows)-1
+        shuffle_buffer_size = int(config['model']['shuffle_buffer_size'] * number_of_windows)
         zipped_dataset = zipped_dataset.shuffle(shuffle_buffer_size)
 
         
@@ -549,6 +549,7 @@ class TensorflowModelService(ModelService):
     @staticmethod
     def add_tomorrow(df_test_y):
         ''' 
+        DEPRECATED - NOT USED. KEPT TO DELETE LATER.
         Adds tomorrow to the dataframe and returns index - which is dates    
 
         Args:
@@ -731,6 +732,7 @@ class TensorflowModelTuningService(ModelTuningService):
                                         ylabel=f'MAE and Loss',
                                         legend=['MAE', f'Loss - {_config["model"]["loss"]}'],
                                         show=_config['plots']['show'],
+                                        signal=False
                                     )
                         
                         # -----------------------------Model Save-----------------------------
@@ -745,9 +747,12 @@ class TensorflowModelTuningService(ModelTuningService):
                                                                 scalers=scalers_X,
                                                                 verbose=verbose)
 
-                        df_test_y_index = TensorflowModelService.add_tomorrow(df_test_y)
-                        
-                        V.plot_series(  x=(df_test_y.index, df_test_y_index[window_size:]),  # as dates
+                        logger.info(f'results.shape: {results.shape}')
+                        logger.info(f'results[-3:]: {results[-3:]}')
+                        logger.info(f"df_test_y.shape: {df_test_y.shape}")
+                        logger.info(f"df_test_y.tail(3):\n{df_test_y.tail(3)}")
+
+                        V.plot_series( x=(df_test_y.index, df_test_y.index[window_size-1:]),  # as dates
                                         y=(df_test_y, results),
                                         model_name=self.model._name,
                                         title='Pred',
@@ -757,11 +762,10 @@ class TensorflowModelTuningService(ModelTuningService):
                                         show=_config['plots']['show'])
                         
                         # -----------------------Calculate Errors----------------------------------
-                        results_no_tomorrow = results[:-1]                      # results(predicted values) without prediction for tomorrow
-                        df_test_y_no_window = df_test_y.iloc[window_size:]      # actual values without window size in the beginning
+                        df_test_y_no_window = df_test_y.iloc[window_size-1:]      # actual values without window size in the beginning
 
                         naive_forecast = ErrorCalc.get_naive_forecast(initial_df).loc[df_test_y_no_window.index] 
-                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_y_no_window, results_no_tomorrow, naive_forecast)
+                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_y_no_window, results, naive_forecast)
                         ErrorCalc.save_errors_to_table(self.model._name, {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
 
 

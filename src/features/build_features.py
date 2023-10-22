@@ -47,6 +47,8 @@ class FeatureEngineering(pd.DataFrame):
             self[f'{col} - 1'] = self[col].shift(1)
         self = self.dropna()
         self = FeatureEngineering.drop_non_features(self)
+        logger.info('--------------------create_features() - shift(1)--------------------')
+        # logger.info(self) # TEMPORARY
         logger.info(f'df.shape: {self.shape}')
         logger.info(f'df.columns: {self.columns}')
 
