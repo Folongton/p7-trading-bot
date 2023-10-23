@@ -716,8 +716,9 @@ class TensorflowModelTuningService(ModelTuningService):
                                             optimizer=_config['model']['optimizer'], 
                                             metrics=_config['model']['metrics'],
                                             )      
-
-                        history = self.model.fit(train_dataset, epochs=_config['model']['epochs'])
+                        
+                        callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=20, verbose=1, restore_best_weights=True)
+                        history = self.model.fit(train_dataset, epochs=_config['model']['epochs'], callbacks=[callback])
 
                         # Plot MAE and Loss
                         mae=history.history['mae']
