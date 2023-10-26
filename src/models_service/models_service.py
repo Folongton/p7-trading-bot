@@ -11,16 +11,12 @@ import pandas as pd
 from src.common.globals import G
 PROJECT_PATH = G.get_project_root()
 DATA_DIR_PROCESSED = (f'{PROJECT_PATH}/data/03_processed/daily_full')
-from src.common.logs import setup_logging
 from src.data.get_data import CSVsLoader
-from src.common.logs import setup_logging, log_model_info
+from src.common.logs import log_model_info
 from src.features.build_features import FeatureEngineering as FE
 from src.common.plots import Visualize as V
 from src.models_service.errors import ErrorsCalculation as ErrorCalc
 
-logger = setup_logging(logger_name=__name__,
-                        console_level=logging.INFO,
-                        log_file_level=logging.INFO)
 
 # -----------------------------Model Pre Train --------------------------
 class DataPreparationService(ABC):
@@ -28,6 +24,8 @@ class DataPreparationService(ABC):
     Classes for data preparation services to fit the model.
     Also a base class for general methods
     '''
+    def __init__(self, config):
+        self.config = config
 
 
     @staticmethod
@@ -99,9 +97,14 @@ class DataPreparationService(ABC):
 
         return df[cols]
     
+    def data_prep(self, logger, verbose=False):
+        pass
+    
 class TensorflowDataPreparation(DataPreparationService):
     ''' Methods for data preparation services to fit the model in tensorflow'''
-    
+    def __init__(self, config):
+        super().__init__(config)
+
 
     @staticmethod # for 1 feature (close price)
     def windowed_dataset_1_feature(series, window_size, batch_size, shuffle_buffer):
@@ -304,9 +307,69 @@ class TensorflowDataPreparation(DataPreparationService):
 
         return zipped_dataset
     
+    def data_prep(self, logger, verbose=False):
+        '''Data preparation for model training
+        IN:
+            self - class object with config and model
+        OUT:
+            train_dataset - tf dataset
+            scalers_X - dict
+            df_test_X - pandas dataframe
+            df_test_y - pandas dataframe
+        '''
+        df = CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
+        df = FE.create_features(df, logger)
+        df_train, df_test = TensorflowDataPreparation.split_train_test(df, self.config['data']['test_size'], logger)
+
+        df_train_X = df_train.drop(columns=['Tomorrow'])
+        df_train_y = df_train['Tomorrow']
+
+        df_test_X = df_test.drop(columns=['Tomorrow'])
+        df_test_y = df_test['Tomorrow']
+
+
+        train_dataset_X, scalers_X = TensorflowDataPreparation.windowed_dataset_X(df_train_X, 
+                                                                    window_size=self.config['model']['window'], 
+                                                                    logger=logger,
+                                                                    verbose=verbose)
+        train_dataset_y = TensorflowDataPreparation.dataset_y(df_train_y, 
+                                            window_size=self.config['model']['window'], 
+                                            logger=logger,
+                                            verbose=verbose)
+        train_dataset = TensorflowDataPreparation.combine_datasets(train_dataset_X, train_dataset_y, self.config, logger, verbose=True)
+
+
+        return train_dataset, scalers_X, df_test_X, df_test_y, df
+    
 class SklearnDataPreparation(DataPreparationService):
     ''' Methods for data preparation services to fit the model in sklearn'''
-    pass
+    
+    def __init__(self, config):
+        super().__init__(config)
+
+
+    def data_prep(self, logger, verbose=False):
+        '''Data preparation for model in sklearn
+        IN:
+            self - class object with config and model
+        OUT:
+            df_train_X - pandas dataframe
+            df_train_y - pandas dataframe
+            df_test_X - pandas dataframe
+            df_test_y - pandas dataframe
+            df - pandas dataframe - full dataframe
+        '''
+        df = CSVsLoader(ticker=self.config['AV']['ticker'], logger=logger, directory=DATA_DIR_PROCESSED)
+        df = FE.create_features(df, logger)
+        df_train, df_test = TensorflowDataPreparation.split_train_test(df, self.config['data']['test_size'], logger)
+
+        df_train_X = df_train.drop(columns=['Tomorrow'])
+        df_train_y = df_train['Tomorrow']
+
+        df_test_X = df_test.drop(columns=['Tomorrow'])
+        df_test_y = df_test['Tomorrow']
+
+        return df_train_X, df_train_y, df_test_X, df_test_y, df
 
 
 # -----------------------------Model Post Train --------------------------
@@ -627,43 +690,7 @@ class TensorflowModelTuningService(ModelTuningService):
     def __init__(self, model, config):
         super().__init__(model, config)
 
-    def data_prep(self, logger, verbose=False):
-        '''Data preparation for model training
-        IN:
-            self - class object with config and model
-        OUT:
-            train_dataset - tf dataset
-            scalers_X - dict
-            df_test_X - pandas dataframe
-            df_test_y - pandas dataframe
-        '''
-        df = CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
-        df = FE.create_features(df, logger)
-        df_train, df_test = TensorflowDataPreparation.split_train_test(df, self.config['data']['test_size'], logger)
-
-        df_train_X = df_train.drop(columns=['Adj Close'])
-        df_train_X = FE.rename_shifted_columns(df_train_X)
-        df_train_y = df_train['Adj Close']
-
-        df_test_X = df_test.drop(columns=['Adj Close'])
-        df_test_X = FE.rename_shifted_columns(df_test_X)
-        df_test_y = df_test['Adj Close']
-
-
-        train_dataset_X, scalers_X = TensorflowDataPreparation.windowed_dataset_X(df_train_X, 
-                                                                    window_size=self.config['model']['window'], 
-                                                                    logger=logger,
-                                                                    verbose=verbose)
-        train_dataset_y = TensorflowDataPreparation.dataset_y(df_train_y, 
-                                            window_size=self.config['model']['window'], 
-                                            logger=logger,
-                                            verbose=verbose)
-        train_dataset = TensorflowDataPreparation.combine_datasets(train_dataset_X, train_dataset_y, self.config, logger, verbose=True)
-
-
-        return train_dataset, scalers_X, df_test_X, df_test_y, df
-
-
+    
     def grid_search(self, logger, verbose=False):
         ''' 
         IN: 
@@ -700,7 +727,7 @@ class TensorflowModelTuningService(ModelTuningService):
                         _config['model']['epochs'] = e
 
                         # ----------------------------- Data Preparation -----------------------------
-                        train_dataset, scalers_X, df_test_X, df_test_y, initial_df = self.data_prep(logger, verbose)
+                        train_dataset, scalers_X, df_test_X, df_test_y, initial_df = TensorflowDataPreparation(config=self.config).data_prep(logger, verbose)
 
 
                         # -----------------------------Model Training-------------------------------

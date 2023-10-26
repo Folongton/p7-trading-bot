@@ -35,19 +35,19 @@ class FeatureEngineering(pd.DataFrame):
     
     def create_features(self, logger):
         '''
-        Creates features from the original dataframe by shifting the columns by 1 day
-        And then drops the columns that are not features or the 'Adj Close'
+        Creates column 'Tomorrow' which is the Adj Close shifted by -1,
+        With other columns as features.
 
         Args:
             df (pandas dataframe) - dataframe to change
         Returns:
-            df (pandas dataframe) - dataframe with only the Adj Close and the features
+            df (pandas dataframe) - dataframe with 'Tomorrow' column and the features
         '''
-        for col in self.columns:
-            self[f'{col} - 1'] = self[col].shift(1)
+
+        self['Tomorrow'] = self['Adj Close'].shift(-1)
         self = self.dropna()
-        self = FeatureEngineering.drop_non_features(self)
-        logger.info('--------------------create_features() - shift(1)--------------------')
+        
+        logger.info('--------------------create_features() - shift(-1)--------------------')
         # logger.info(self) # TEMPORARY
         logger.info(f'df.shape: {self.shape}')
         logger.info(f'df.columns: {self.columns}')

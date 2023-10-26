@@ -3,12 +3,10 @@ import json as j
 import pandas as pd
 import requests as r
 import time
-import logging
 import yfinance as yf
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from src.common.logs import setup_logging
 from src.common.globals import G
 from env import Env
 
@@ -19,10 +17,6 @@ SLEEP_TIME = 60/CALLS_PER_MINUTE + (60/CALLS_PER_MINUTE)*0.1 # 30 requests per m
 
 DATA_DIR_DAILY_FULL = G.raw_daily_full_dir
 NASDAQ_ALL = G.all_nasdaq_tickers
-
-logger = setup_logging(logger_name=__name__,
-                        console_level=logging.INFO, 
-                        log_file_level=logging.INFO)
 
 # ----------------------------------------------------Download Data----------------------------------------------------
 class DownloadData(ABC):
@@ -204,14 +198,14 @@ class LoadData(ABC):
         pass
     
 class CSVsLoader(LoadData, pd.DataFrame):
-    def __init__(self, ticker , directory=DATA_DIR_DAILY_FULL , *args, **kwargs):
+    def __init__(self, ticker , logger, directory=DATA_DIR_DAILY_FULL , *args, **kwargs):
         # Create a DataFrame object (empty)
         super().__init__(*args, **kwargs)
         self.ticker = ticker
         self.directory = directory
-        self.load_daily(ticker=self.ticker, directory=self.directory)
+        self.load_daily(ticker=self.ticker, directory=self.directory, logger=logger)
 
-    def load_daily(self, ticker, directory):
+    def load_daily(self, ticker, directory, logger):
         '''
         Loads the daily data from a csv file.
         IN: ticker, directory
@@ -231,11 +225,13 @@ class CSVsLoader(LoadData, pd.DataFrame):
         logger.info(f'Loaded "{for_logs}". Number data points {df.shape[0]}. From "{df.index[0]}" to "{df.index[-1]}"')
 
     def prep_AV_data(self):
-        self.drop(columns=['1. open', '2. high', '3. low', '4. close', '7. dividend amount', '8. split coefficient'], inplace=True)
-        self.rename(columns={'5. adjusted close': 'Adj Close', '6. volume': 'Volume'}, inplace=True)
+        self['high-low variance'] = (self['2. high'] - self['3. low']) / self['1. open'] * 100
+        self.drop(columns=['2. high', '3. low', '4. close', '7. dividend amount', '8. split coefficient'], inplace=True)
+        self.rename(columns={'1. open': 'Open', '5. adjusted close': 'Adj Close', '6. volume': 'Volume'}, inplace=True)
         self.index.name = 'Date'
         self.sort_index(ascending=True, inplace=True)
         self.dropna(inplace=True, subset=['Adj Close'])
+
         return self
 
     def save_data(self, directory=''):

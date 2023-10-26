@@ -10,7 +10,7 @@ def setup_logging(console_level=logging.INFO, log_file='Main', log_file_level=lo
         log_file_level: logging level for log file
     OUTPUT: logger object
     '''
-    log_fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    log_fmt = logging.Formatter('%(asctime)s - %(module)s - %(levelname)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.DEBUG)

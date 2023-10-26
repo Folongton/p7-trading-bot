@@ -4,6 +4,9 @@ from src.common.logs import setup_logging
 from src.common.globals import G
 from src.data.get_data import CSVsLoader
 
+logger = setup_logging(logger_name=__name__,
+                                console_level=logging.INFO,
+                                log_file_level=logging.INFO)
 
 DATA_DIR_RAW = G.raw_daily_full_dir
 DATA_DIR_PROCESSED = G.processed_daily_full_dir
@@ -14,14 +17,10 @@ def main( input_tickers, input_filepath=DATA_DIR_RAW, output_filepath=DATA_DIR_P
         cleaned data ready to be analyzed (saved in ../processed).
     """
     for ticker in input_tickers:
-        logger = setup_logging(logger_name=__name__,
-                                console_level=logging.INFO, 
-                                # log_file=os.path.basename(__file__), 
-                                log_file_level=logging.INFO)
         logger.info('making final data set from raw data')
         # ---------------------------DATA WORK---------------------------------------
         # Load data
-        df = CSVsLoader(ticker)
+        df = CSVsLoader(ticker, logger=logger)
         # Clean data
         df = df.prep_AV_data()
         # Save data

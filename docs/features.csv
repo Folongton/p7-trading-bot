@@ -4,6 +4,8 @@ Stochastic Oscilator, SO, Technical
 Moving Average Convergence-divergence, MACD, Technical
 150MA - 50MA, 150MA-50MA, Technical
 Spx Stochastic Oscilator, SPX500SO, Technical
+Close_Ratio_n and Trend_n, CRnTn, Technical, See _TRAIN_RF.ipynb
 
 Yield curve 10Y-3MO, T10-Y3M, Global
+Prices of Europe/China total market inx funds, IEV, Global
 Altman Z-score, ALTZ, Fundamental
