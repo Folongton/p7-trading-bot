@@ -3,7 +3,6 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
 import os, joblib
-import logging
 from datetime import datetime
 import re
 import pandas as pd
@@ -698,11 +697,11 @@ class TensorflowModelTuningService(ModelTuningService):
         OUT:
             best_params - dict
         '''
-        # check if buffer size is less than data size to avoid errors
+        # check if shuffle buffer size is less than data size to avoid errors
         data_size = len(CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED))
         for buf_size in self.config['model']['shuffle_buffer_size']:
             if buf_size > data_size:
-                raise ValueError(f"Buffer size from grid - {buf_size} is greater than data size - {data_size}")
+                raise ValueError(f"Shuffle Buffer size from grid - {buf_size} is greater than data size - {data_size}")
 
 
         best_params = {}

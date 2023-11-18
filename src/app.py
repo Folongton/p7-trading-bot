@@ -24,7 +24,7 @@ tickers = config['tickers']
 selected_ticker = st.selectbox('Select a ticker', tickers)
 
 # Create a Streamlit app
-st.markdown("<h1 style='color: teal;'>Microsoft Stock Prediction App</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='color: teal;'>Stock Prediction App</h1>", unsafe_allow_html=True)
 
 
 # Get the stock data

@@ -7,6 +7,7 @@
     microeconomic factors (company info),
     macroeconomic factors ( interest rates, inflation, CPI, PPI, unemployment rate, etc.),
     See Sven's book as well as Book on stocks from Alex.
+    "Calculate ten fundamental financial metrics as per acumenlearning.com" to GPT
     
 5. Most used feature selection technics to try with the model (read more specifics on the paper) with citations to other papers: 
     RF, (Try Recursive Feature Elimination with Cross-Validation. In sklearn if possible. read.)
