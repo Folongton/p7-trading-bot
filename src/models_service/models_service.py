@@ -306,6 +306,37 @@ class TensorflowDataPreparation(DataPreparationService):
 
         return zipped_dataset
     
+   
+    def choose_y(self, df_train, df_test, logger):
+        '''
+        To support 2 models - price and trend, we need to choose the y column to use for training and testing. This will mean we have to drop the other y column from the dataframe.
+        If the model is price, we will drop the trend column and vice versa.
+            IN:
+                df_train - pandas dataframe
+                df_test - pandas dataframe
+            OUT:
+                df_train - pandas dataframe updated
+                df_test - pandas dataframe updated
+                y_column - string - name of the y column
+            '''
+        if self.config['model']['type'] == 'trend':
+            y_column = [y for y in df_train.columns if 'slope' in y][0]
+
+            df_train = df_train.drop(columns=['Tomorrow'])   
+            df_test = df_test.drop(columns=['Tomorrow'])
+
+        elif self.config['model']['type'] == 'price':
+            y_column = 'Tomorrow'
+            trend_col = [y for y in df_train.columns if 'slope' in y][0]
+
+            df_train = df_train.drop(columns=[trend_col])
+            df_test = df_test.drop(columns=[trend_col])
+
+        else:
+            raise ValueError(f"Model type '{self.config['model']['type']}' is not supported. Supported types are 'price' and 'trend'")
+        
+        return df_train, df_test, y_column
+
     def data_prep(self, logger, verbose=False):
         '''Data preparation for model training
         IN:
@@ -316,15 +347,20 @@ class TensorflowDataPreparation(DataPreparationService):
             df_test_X - pandas dataframe
             df_test_y - pandas dataframe
         '''
-        df = CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED)
+        df = CSVsLoader(ticker=self.config['AV']['ticker'], logger=logger, directory=DATA_DIR_PROCESSED)
         df = FE.create_features(df, logger)
+        df = FE.create_slope_column(df, logger, slope_window=self.config['model']['trend_prediction_window'])
+
+
         df_train, df_test = TensorflowDataPreparation.split_train_test(df, self.config['data']['test_size'], logger)
 
-        df_train_X = df_train.drop(columns=['Tomorrow'])
-        df_train_y = df_train['Tomorrow']
+        df_train, df_test, y_column = self.choose_y(df_train, df_test, logger)
 
-        df_test_X = df_test.drop(columns=['Tomorrow'])
-        df_test_y = df_test['Tomorrow']
+        df_train_X = df_train.drop(columns=[y_column])
+        df_train_y = df_train[y_column]
+
+        df_test_X = df_test.drop(columns=[y_column])
+        df_test_y = df_test[y_column]
 
 
         train_dataset_X, scalers_X = TensorflowDataPreparation.windowed_dataset_X(df_train_X, 
@@ -523,7 +559,7 @@ class TensorflowModelService(ModelService):
         return forecast
     
     @staticmethod
-    def model_forecast(model, df, window_size, scalers:dict, verbose=True):
+    def model_forecast(model, df, window_size, scalers:dict, verbose=True, logger=None):
         '''
         Generates a forecast from the model
 
@@ -697,13 +733,6 @@ class TensorflowModelTuningService(ModelTuningService):
         OUT:
             best_params - dict
         '''
-        # check if shuffle buffer size is less than data size to avoid errors
-        data_size = len(CSVsLoader(ticker=self.config['AV']['ticker'], directory=DATA_DIR_PROCESSED))
-        for buf_size in self.config['model']['shuffle_buffer_size']:
-            if buf_size > data_size:
-                raise ValueError(f"Shuffle Buffer size from grid - {buf_size} is greater than data size - {data_size}")
-
-
         best_params = {}
 
         _config = self.config.copy()
@@ -736,7 +765,7 @@ class TensorflowModelTuningService(ModelTuningService):
                         window_size = TensorflowModelService.get_window_size_from_model_name(self.model._name)
                         log_model_info(_config, self.model, logger)
 
-                        self.model.load_weights(f'{PROJECT_PATH}/models_trained/keep/default_model_weights.h5')
+                        # self.model.load_weights(f'{PROJECT_PATH}/models_trained/keep/default_model_weights.h5')
 
                         self.model.compile(loss=_config['model']['loss'], 
                                             optimizer=_config['model']['optimizer'], 
@@ -772,7 +801,8 @@ class TensorflowModelTuningService(ModelTuningService):
                                                                 df=df_test_X,
                                                                 window_size=window_size,
                                                                 scalers=scalers_X,
-                                                                verbose=verbose)
+                                                                verbose=verbose,
+                                                                logger=logger)
 
                         logger.info(f'results.shape: {results.shape}')
                         logger.info(f'results[-3:]: {results[-3:]}')
