@@ -33,7 +33,7 @@ class ErrorsCalculation():
         return mae/mae_naive
 
     @staticmethod
-    def calc_errors(y_true, y_pred, naive_forecast):
+    def calc_errors(y_true, y_pred, naive_forecast, model_type):
         ''' Calculates errors for model
 
         INPUT:  y_true: series, 
@@ -44,16 +44,26 @@ class ErrorsCalculation():
                 mape: float,
                 mase: float
         '''
-        rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-        mae = mean_absolute_error(y_true, y_pred)
-        mape = mean_absolute_percentage_error(y_true, y_pred)
-        mase = ErrorsCalculation.mean_absolute_scaled_error(y_true, y_pred, naive_forecast)
+        if model_type == 'price':
+            rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+            mae = mean_absolute_error(y_true, y_pred)
+            mape = mean_absolute_percentage_error(y_true, y_pred)
+            mase = ErrorsCalculation.mean_absolute_scaled_error(y_true, y_pred, naive_forecast)
 
-        logger.info(f'Test RMSE: $ {round(rmse, 3)}')
-        logger.info(f'Test MAE : $ {round(mae, 3)}')
-        logger.info(f'Test MAPE:   {round(mape, 3)}')
-        logger.info(f'Test MASE:   {round(mase, 3)}')
-        return round(rmse, 3), round(mae, 3), round(mape, 3), round(mase, 3)
+            logger.info(f'Test RMSE: $ {round(rmse, 3)}')
+            logger.info(f'Test MAE : $ {round(mae, 3)}')
+            logger.info(f'Test MAPE:   {round(mape, 3)}')
+            logger.info(f'Test MASE:   {round(mase, 3)}')
+            return round(rmse, 3), round(mae, 3), round(mape, 3), round(mase, 3)
+        
+        elif model_type == 'trend':
+            rmse = np.sqrt(mean_squared_error(y_true, y_pred))
+            mae = mean_absolute_error(y_true, y_pred)
+
+            logger.info(f'Test RMSE:   {round(rmse, 3)}')
+            logger.info(f'Test MAE :   {round(mae, 3)}')
+
+            return round(rmse, 3), round(mae, 3), None, None
 
     @staticmethod
     def save_errors_to_table(model_name, errors):

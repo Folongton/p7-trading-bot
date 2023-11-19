@@ -810,19 +810,20 @@ class TensorflowModelTuningService(ModelTuningService):
                         logger.info(f"df_test_y.tail(3):\n{df_test_y.tail(3)}")
 
                         V.plot_series( x=(df_test_y.index, df_test_y.index[window_size-1:]),  # as dates
-                                        y=(df_test_y, results),
+                                        y=(df_test_y, results),                               # as values
                                         model_name=self.model._name,
                                         title='Pred',
                                         xlabel='Date',
                                         ylabel='Price',
                                         legend=['Actual', 'Predicted'],
-                                        show=_config['plots']['show'])
+                                        show=_config['plots']['show'],
+                                        signal=_config['plots']['buy_sell_signal'])
                         
                         # -----------------------Calculate Errors----------------------------------
                         df_test_y_no_window = df_test_y.iloc[window_size-1:]      # actual values without window size in the beginning
 
                         naive_forecast = ErrorCalc.get_naive_forecast(initial_df).loc[df_test_y_no_window.index] 
-                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_y_no_window, results, naive_forecast)
+                        rmse, mae, mape, mase = ErrorCalc.calc_errors(df_test_y_no_window, results, naive_forecast, _config['model']['type'])
                         ErrorCalc.save_errors_to_table(self.model._name, {'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase})
 
 
