@@ -202,3 +202,114 @@ class Visualize:
             plt.show()
 
         return fig_path
+    
+    @staticmethod
+    def slopes(results_time_price_adjusted: tuple, time_index: pd.DatetimeIndex, pred_trend_window: int):
+        """
+        Calculates x, y values for slope lines. Slopes coming as predictions from a model.
+        And we want to plot them on top of the original price time series.
+        *** THESE ARE SLOPE LINES, NOT PRICE LINES ***
+        ***We are plotting the trend and strength of the trend, not the price.***
+
+        This function computes the slope values for a series of points defined by the
+        time and price adjustments. It is intended to be used in financial or time series
+        analysis for trend analysis.
+
+        Parameters:
+        - results_time_price_adjusted (tuple): A tuple containing three elements (slopes, time positions, prices).
+        - time_index (pd.DatetimeIndex): A Pandas DatetimeIndex representing time points.
+        - pred_trend_window (int): The prediction window size for trend calculation.
+
+        Returns:
+        - list: A list of tuples, where each tuple contains arrays of x and y values representing the slopes.
+        """
+        slopes_values = []
+        for i, (slope, tpa, price_) in enumerate(zip(*results_time_price_adjusted)):
+            if i == len(results_time_price_adjusted[0]) - 1:
+                break
+
+            x = np.linspace(tpa, results_time_price_adjusted[1][i+1] - 1, pred_trend_window)
+            b = price_ - slope * tpa
+            y = slope * x + b
+
+            for inx, time_index_value in enumerate(time_index):
+                if inx == tpa:
+                    x = time_index[inx: inx+pred_trend_window]
+
+            slopes_values.append((x, y))
+
+        return slopes_values
+
+    @staticmethod
+    def plot_slopes_price(slopes_values, time_index, price, window_size):
+        """
+        Plot slope lines against a price time series.
+
+        This function plots the calculated slope lines on top of the original price time series,
+        providing a visual representation of the trends.
+
+        Parameters:
+        - slopes_values: Calculated slope values from the 'slopes' function.
+        - time_index (pd.DatetimeIndex): A Pandas DatetimeIndex representing time points.
+        - price (array-like): An array-like object of price values.
+        - window_size (int): The size of the window used in slope calculation.
+        """
+        for x, y in slopes_values:
+            plt.plot(x, y, color='orange')
+
+        plt.plot(time_index, price[window_size-1:])
+
+    @staticmethod
+    def plot_future_slope(results_adjusted, time_positions_adjusted, price_adjusted, time_index, pred_trend_window):
+        """
+        Plot the future slope based on the last point of the given time series.
+
+        This function extends the time series into the future and plots the projected slope
+        starting from the last point of the original series.
+        *** THIS PLOTS A SLOPE FOR THE NEXT N DAYS, NOT THE NEXT N POINTS IN THE SERIES ***
+        ***Slope represents the trend and strength of the trend, not the price.***
+
+        Parameters:
+        - results_adjusted: Adjusted results from the slope calculation.
+        - time_positions_adjusted: Adjusted time positions corresponding to the results.
+        - price_adjusted: Adjusted price values.
+        - time_index (pd.DatetimeIndex): The original time index of the series.
+        - pred_trend_window (int): The prediction window size.
+        """
+        last_point = time_index[-1]
+        extended_time_index = pd.date_range(start=last_point, periods=pred_trend_window, freq='D')
+
+        x = np.linspace(time_positions_adjusted[-1], time_positions_adjusted[-1]+(pred_trend_window-1), pred_trend_window)
+        b = price_adjusted.iloc[-1] - results_adjusted[-1]*time_positions_adjusted[-1]
+        y = results_adjusted[-1]*x + b
+
+        x = extended_time_index[:pred_trend_window]
+        plt.plot(x, y, color='orange')
+
+    @staticmethod
+    def plot_trends(results, price, df_test_y, window_size, pred_trend_window):
+        """
+        Plot the trends of a given time series data with future projection.
+
+        This function integrates several steps: adjusting results and price data,
+        calculating slopes, and plotting both historical trends and future projection.
+
+        Parameters:
+        - results: Computed results from a trend analysis model.
+        - price: Original price data.
+        - df_test_y (pd.DataFrame): A DataFrame containing the test dataset.
+        - window_size (int): The window size used in trend analysis.
+        - pred_trend_window (int): The prediction window size for future projection.
+        """
+        # Adjust the results, price, and time positions
+        results_adjusted = results[::-pred_trend_window][::-1]
+        price_adjusted = price[window_size-1:][::-pred_trend_window][::-1]
+        time_positions_adjusted = [i for i in range(len(df_test_y.index[window_size-1:]))][::-pred_trend_window][::-1]
+        time_index = df_test_y.index[window_size-1:]
+
+        slopes_values = Visualize.slopes((results_adjusted, time_positions_adjusted, price_adjusted), time_index, pred_trend_window)
+
+        Visualize.plot_slopes_price(slopes_values, time_index, price, window_size)
+        Visualize.plot_future_slope(results_adjusted, time_positions_adjusted, price_adjusted, time_index, pred_trend_window)
+        
+        plt.show()

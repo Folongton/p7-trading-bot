@@ -87,7 +87,8 @@ class ErrorsCalculation():
         else:
             dict_for_df['Saved'] = False
 
-        df = pd.concat([df, pd.DataFrame(dict_for_df, index=[0])], ignore_index=True)
+        new_model_errors_df = pd.DataFrame(dict_for_df, index=[0]).fillna(np.nan)
+        df = pd.concat([df, new_model_errors_df], ignore_index=True)
 
         df.to_csv(os.path.join(str(PROJECT_PATH), r'logs/models_table.csv'), index=False)
 

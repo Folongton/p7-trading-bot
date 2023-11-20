@@ -495,9 +495,17 @@ class TensorflowModelService(ModelService):
         shuffle_buffer_size = str(config['model']['shuffle_buffer_size']).replace('.','')
         batch_size = str(config['model']['batch_size'])
         epochs = str(config['model']['epochs'])
+        model_type = config['model']['type']
+        tpw = str(config['model']['trend_prediction_window'])
         n_params = str(model.count_params())
 
-        model._name = f"{ticker}_{name}_W{window}_SBS{shuffle_buffer_size}_B{batch_size}_E{epochs}_P{n_params}_{datetime.now().strftime('%Y_%m_%d__%H_%M')}"
+        if model_type == 'price':
+            model._name = f"{ticker}_{name}_W{window}_SBS{shuffle_buffer_size}_B{batch_size}_E{epochs}_P{n_params}_{datetime.now().strftime('%Y_%m_%d__%H_%M')}"
+        elif model_type == 'trend':
+            model._name = f"{ticker}_{name}_trend{tpw}_W{window}_SBS{shuffle_buffer_size}_B{batch_size}_E{epochs}_P{n_params}_{datetime.now().strftime('%Y_%m_%d__%H_%M')}"
+        else:
+            raise ValueError(f"Model type '{model_type}' is not supported. Supported types are 'price' and 'trend'")
+        
         return model
     
     @staticmethod
@@ -676,7 +684,22 @@ class TensorflowModelService(ModelService):
         '''
         window_size = int(re.search(r'W(\d+)_', model_name).group(1))
         return window_size
-        
+    
+    @staticmethod
+    # model name example: 'VGT_LSTM_trend20_W20_SBS1_B128_E1500_P42625_2023_11_19__01_30'
+    def get_trend_window_size_from_model_name(model_name):
+        ''' 
+        Gets the trend window size from the model name
+
+        Args:
+            model_name (string) - name of the model usually obtained from model._name
+        Returns:
+            trend_window_size (int) - trend window size
+        '''
+        trend_window_size = int(re.search(r'trend(\d+)_', model_name).group(1))
+        print(f'trend_window_size: {trend_window_size}')
+        return trend_window_size
+    
 class SklearnModelService(ModelService):
     ''' 
     Methods for model services like training, prediction, saving, loading etc. in sklearn
