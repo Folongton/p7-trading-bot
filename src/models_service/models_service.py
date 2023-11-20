@@ -854,8 +854,13 @@ class TensorflowModelTuningService(ModelTuningService):
                         if best_params == {}:
                             best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
                         else:
-                            if mase < best_params['mase']:
-                                best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
+                            if _config['model']['type'] == 'price':
+                                if mase < best_params['mase']:
+                                    best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
+                                    
+                            elif _config['model']['type'] == 'trend':
+                                if rmse < best_params['rmse']:
+                                    best_params = {'window': window, 'shuffle_buffer_size': sbs, 'batch_size': batch, 'epochs': e, 'rmse': rmse, 'mae': mae, 'mape': mape, 'mase': mase}
 
         logger.info(f'Best params: {best_params}')
 
